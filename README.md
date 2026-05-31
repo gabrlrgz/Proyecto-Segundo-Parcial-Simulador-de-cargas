@@ -1,4 +1,4 @@
-![logo](https://github.com/gabrlrgz/Proyecto-Segundo-Parcial-Simulador-de-cargas/blob/main/imagen.png)
+![logo](https://github.com/gabrlrgz/Proyecto-Segundo-Parcial-Simulador-de-cargas/blob/main/logo.png)
 # Simulador de Cargas Eléctricas
 
 ## Breve descripcion del proyecto
