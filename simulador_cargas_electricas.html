@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Cargas Eléctricas</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a;
+  --bg2: #0f1526;
+  --panel: #131929;
+  --border: #1e2a45;
+  --border2: #2a3a5e;
+  --accent: #00d4ff;
+  --accent2: #7b61ff;
+  --accent3: #ff6b35;
+  --pos: #ff4d6d;
+  --neg: #4db8ff;
+  --text: #e8edf5;
+  --text2: #8899bb;
+  --text3: #566480;
+  --green: #00e5a0;
+  --yellow: #ffc947;
+  --formula-bg: #0d1730;
+  --formula-border: #1a2d55;
+  --font: 'Sora', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+/* Header */
+.header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
+.header-logo { width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.header h1 { font-size: 17px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+.header p { font-size: 12px; color: var(--text2); font-family: var(--mono); }
+.mode-tabs { margin-left: auto; display: flex; gap: 4px; background: var(--bg); border-radius: 8px; padding: 3px; border: 1px solid var(--border); }
+.mode-tab { padding: 6px 18px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; color: var(--text2); border: none; background: none; font-family: var(--font); }
+.mode-tab.active { background: var(--accent2); color: #fff; }
+
+/* Layout */
+.app { display: grid; grid-template-columns: 280px 1fr 320px; height: calc(100vh - 65px); }
+
+/* Left panel */
+.panel-left { background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.panel-section { padding: 16px; border-bottom: 1px solid var(--border); }
+.panel-section:last-child { border-bottom: none; flex: 1; overflow-y: auto; }
+.section-title { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px; }
+
+/* Controls */
+.control-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.control-label { font-size: 11px; color: var(--text2); font-family: var(--mono); }
+.control-label span { color: var(--accent); }
+input[type=range] { width: 100%; height: 3px; -webkit-appearance: none; background: var(--border2); border-radius: 2px; outline: none; cursor: pointer; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+input[type=number], input[type=text] { width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); padding: 7px 10px; font-size: 12px; font-family: var(--mono); outline: none; transition: border-color 0.2s; }
+input[type=number]:focus, input[type=text]:focus { border-color: var(--accent2); }
+select { width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); padding: 7px 10px; font-size: 12px; font-family: var(--mono); outline: none; cursor: pointer; }
+
+.btn { width: 100%; padding: 9px; border: none; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: var(--font); margin-bottom: 6px; }
+.btn-primary { background: var(--accent2); color: #fff; }
+.btn-primary:hover { background: #9b7fff; transform: translateY(-1px); }
+.btn-accent { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+.btn-accent:hover { background: rgba(0,212,255,0.1); }
+.btn-danger { background: transparent; border: 1px solid var(--pos); color: var(--pos); }
+.btn-danger:hover { background: rgba(255,77,109,0.1); }
+.btn-green { background: transparent; border: 1px solid var(--green); color: var(--green); }
+.btn-green:hover { background: rgba(0,229,160,0.1); }
+
+/* Charge list */
+.charge-item { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
+.charge-item:hover { border-color: var(--border2); }
+.charge-item.selected { border-color: var(--accent2); background: rgba(123,97,255,0.08); }
+.charge-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.charge-info { flex: 1; min-width: 0; }
+.charge-name { font-size: 12px; font-weight: 600; font-family: var(--mono); }
+.charge-coords { font-size: 10px; color: var(--text2); font-family: var(--mono); }
+.charge-del { font-size: 16px; color: var(--text3); padding: 2px 4px; cursor: pointer; }
+.charge-del:hover { color: var(--pos); }
+
+/* Canvas area */
+.canvas-area { background: var(--bg); display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.canvas-toolbar { background: var(--panel); border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tool-btn { padding: 5px 12px; border-radius: 5px; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s; font-family: var(--mono); border: 1px solid var(--border2); background: var(--bg); color: var(--text2); }
+.tool-btn:hover { background: var(--border); color: var(--text); }
+.tool-btn.active { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+canvas { cursor: crosshair; display: block; }
+.canvas-info { position: absolute; bottom: 12px; left: 16px; background: rgba(10,14,26,0.9); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 10px; font-family: var(--mono); color: var(--text2); pointer-events: none; }
+.canvas-coords { position: absolute; top: 12px; right: 16px; background: rgba(10,14,26,0.9); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 10px; font-family: var(--mono); color: var(--text2); pointer-events: none; }
+
+/* Right panel */
+.panel-right { background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.results-tabs { display: flex; border-bottom: 1px solid var(--border); }
+.results-tab { flex: 1; padding: 10px; font-size: 11px; font-weight: 500; text-align: center; cursor: pointer; color: var(--text2); border: none; background: none; font-family: var(--font); transition: all 0.2s; border-bottom: 2px solid transparent; }
+.results-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.results-content { flex: 1; overflow-y: auto; padding: 16px; }
+.results-content::-webkit-scrollbar { width: 4px; }
+.results-content::-webkit-scrollbar-track { background: transparent; }
+.results-content::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* Formula box */
+.formula-box { background: var(--formula-bg); border: 1px solid var(--formula-border); border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+.formula-title { font-size: 10px; color: var(--accent); font-family: var(--mono); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+.formula-main { font-size: 16px; font-family: var(--mono); color: var(--yellow); font-weight: 500; margin-bottom: 6px; letter-spacing: 0.5px; }
+.formula-desc { font-size: 11px; color: var(--text2); line-height: 1.7; }
+.formula-desc b { color: var(--accent); }
+
+/* Result cards */
+.result-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+.result-card-title { font-size: 10px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.result-value { font-size: 18px; font-weight: 700; font-family: var(--mono); }
+.result-value.pos { color: var(--pos); }
+.result-value.neg { color: var(--neg); }
+.result-value.neutral { color: var(--accent); }
+.result-unit { font-size: 11px; color: var(--text2); margin-top: 2px; font-family: var(--mono); }
+.result-components { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+.result-comp { background: var(--panel); border-radius: 5px; padding: 7px 9px; font-family: var(--mono); }
+.result-comp-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; }
+.result-comp-val { font-size: 13px; color: var(--text); font-weight: 500; margin-top: 2px; }
+
+/* Pair table */
+.pair-table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: var(--mono); }
+.pair-table th { color: var(--text3); font-weight: 500; text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; }
+.pair-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: middle; }
+.pair-table tr:last-child td { border-bottom: none; }
+.pair-table tr:hover td { background: rgba(255,255,255,0.02); }
+.force-val { color: var(--yellow); font-weight: 500; }
+.badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.badge-rep { background: rgba(255,77,109,0.15); color: var(--pos); border: 1px solid rgba(255,77,109,0.3); }
+.badge-atr { background: rgba(77,184,255,0.15); color: var(--neg); border: 1px solid rgba(77,184,255,0.3); }
+
+/* Dimensional analysis */
+.dim-block { background: var(--formula-bg); border: 1px solid var(--formula-border); border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+.dim-step { font-family: var(--mono); font-size: 12px; color: var(--text2); margin-bottom: 5px; padding: 5px; border-left: 2px solid var(--accent2); padding-left: 10px; }
+.dim-step .eq { color: var(--yellow); }
+.dim-step .unit { color: var(--green); }
+
+/* Field point inputs */
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+.field-result { font-family: var(--mono); font-size: 13px; background: var(--formula-bg); border: 1px solid var(--formula-border); border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+.field-result-label { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.field-result-val { font-size: 15px; color: var(--accent); font-weight: 600; }
+.field-result-dir { font-size: 11px; color: var(--text2); margin-top: 3px; }
+
+/* Legend */
+.legend { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text2); font-family: var(--mono); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 30px 20px; color: var(--text3); font-size: 12px; }
+.empty-state .icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
+
+/* Scrollbar */
+.panel-section::-webkit-scrollbar { width: 3px; }
+.panel-section::-webkit-scrollbar-thumb { background: var(--border2); }
+
+/* Tooltip */
+.tooltip { position: absolute; background: var(--panel); border: 1px solid var(--border2); border-radius: 6px; padding: 6px 10px; font-size: 11px; font-family: var(--mono); color: var(--text); pointer-events: none; z-index: 100; display: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">⚡</div>
+  <div>
+    <h1>Simulador de Cargas Eléctricas</h1>
+    <p>Ley de Coulomb · Campo Eléctrico · Fuerza Neta</p>
+  </div>
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="tab1d" onclick="setMode('1D')">1D</button>
+    <button class="mode-tab" id="tab2d" onclick="setMode('2D')">2D</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- LEFT PANEL -->
+  <div class="panel-left">
+    <div class="panel-section">
+      <div class="section-title">Nueva Carga</div>
+      <div class="control-row">
+        <div class="control-label">Carga q (<span>μC</span>)</div>
+        <input type="number" id="inCharge" value="1" step="0.5" placeholder="ej. 2.5 μC">
+      </div>
+      <div id="pos2d-section" style="display:none">
+        <div class="control-row">
+          <div class="control-label">Posición X (m)</div>
+          <input type="number" id="inX" value="0" step="0.5">
+        </div>
+        <div class="control-row">
+          <div class="control-label">Posición Y (m)</div>
+          <input type="number" id="inY" value="0" step="0.5">
+        </div>
+      </div>
+      <div id="pos1d-section">
+        <div class="control-row">
+          <div class="control-label">Posición X (m)</div>
+          <input type="number" id="inX1d" value="0" step="0.5">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addCharge()">+ Agregar Carga</button>
+      <button class="btn btn-danger" onclick="clearAll()">Limpiar todo</button>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Opciones de vista</div>
+      <div class="control-row">
+        <div class="control-label">Mostrar</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer">
+            <input type="checkbox" id="chkForces" checked onchange="render()"> Fuerzas
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer">
+            <input type="checkbox" id="chkField" onchange="render()"> Campo E
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer">
+            <input type="checkbox" id="chkLines" onchange="render()"> Líneas de campo
+          </label>
+        </div>
+      </div>
+      <div class="control-row">
+        <div class="control-label">Zoom: <span id="zoomVal">1.0</span>x</div>
+        <input type="range" min="0.3" max="4" step="0.1" value="1" id="zoomRange" oninput="setZoom(this.value)">
+      </div>
+    </div>
+
+    <div class="panel-section" style="flex:1;overflow-y:auto;">
+      <div class="section-title">Cargas en el sistema</div>
+      <div id="chargeList"><div class="empty-state"><div class="icon">🔵</div>Sin cargas.<br>Agrega cargas o haz click en el canvas.</div></div>
+      <div class="legend" style="margin-top:10px">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--pos)"></div>Positiva</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--neg)"></div>Negativa</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-area">
+    <div class="canvas-toolbar">
+      <button class="tool-btn active" id="toolAdd" onclick="setTool('add')">Click = agregar</button>
+      <button class="tool-btn" id="toolMove" onclick="setTool('move')">Mover carga</button>
+      <button class="tool-btn" id="toolField" onclick="setTool('field')">Medir campo</button>
+      <button class="tool-btn" id="toolSelect" onclick="setTool('select')">Seleccionar</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+        <div class="legend-item"><div style="width:20px;height:2px;background:var(--yellow)"></div>Fuerza neta</div>
+        <div class="legend-item"><div style="width:20px;height:2px;background:var(--accent2)"></div>Campo E</div>
+      </div>
+    </div>
+    <canvas id="simCanvas"></canvas>
+    <div class="canvas-info" id="canvasInfo">Click para agregar carga · Scroll para zoom</div>
+    <div class="canvas-coords" id="canvasCoords">x: 0.00 m, y: 0.00 m</div>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel-right">
+    <div class="results-tabs">
+      <button class="results-tab active" onclick="showTab('forces')" id="tabForces">Fuerzas</button>
+      <button class="results-tab" onclick="showTab('field')" id="tabField">Campo E</button>
+      <button class="results-tab" onclick="showTab('analysis')" id="tabAnalysis">Análisis</button>
+    </div>
+    <div class="results-content" id="resultsContent">
+      <div id="tab-forces">
+        <!-- Forces tab content -->
+      </div>
+      <div id="tab-field" style="display:none">
+        <!-- Field tab content -->
+      </div>
+      <div id="tab-analysis" style="display:none">
+        <!-- Analysis tab content -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONSTANTS & STATE
+// ============================================================
+const k = 8.9875517874e9; // N·m²/C²
+let charges = [];
+let selectedId = null;
+let mode = '1D';
+let tool = 'add';
+let zoom = 1;
+let panX = 0, panY = 0;
+let isDragging = false, dragId = null;
+let lastMouse = {x:0,y:0};
+let fieldPoint = null;
+let currentResultTab = 'forces';
+let nextId = 1;
+let isPanning = false, panStart = {x:0,y:0};
+let chargeBeingDragged = null;
+
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+// ============================================================
+// RESIZE
+// ============================================================
+function resizeCanvas() {
+  const area = canvas.parentElement;
+  const tb = area.querySelector('.canvas-toolbar');
+  canvas.width = area.offsetWidth;
+  canvas.height = area.offsetHeight - tb.offsetHeight;
+  render();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ============================================================
+// COORDINATE TRANSFORMS
+// ============================================================
+function worldToCanvas(wx, wy) {
+  const cx = canvas.width/2 + panX + wx * zoom * 60;
+  const cy = canvas.height/2 + panY - wy * zoom * 60;
+  return {x: cx, y: cy};
+}
+function canvasToWorld(cx, cy) {
+  const wx = (cx - canvas.width/2 - panX) / (zoom * 60);
+  const wy = -(cy - canvas.height/2 - panY) / (zoom * 60);
+  return {x: wx, y: wy};
+}
+
+// ============================================================
+// PHYSICS
+// ============================================================
+function coulombForce(q1, q2, r) {
+  return k * Math.abs(q1) * Math.abs(q2) / (r * r);
+}
+
+function netForceOn(id) {
+  const c = charges.find(c=>c.id===id);
+  if(!c) return {Fx:0, Fy:0, mag:0};
+  let Fx=0, Fy=0;
+  for(const o of charges) {
+    if(o.id===id) continue;
+    const dx = c.x - o.x;
+    const dy = (mode==='2D') ? c.y - o.y : 0;
+    const r = Math.sqrt(dx*dx + dy*dy);
+    if(r < 1e-10) continue;
+    const F = k * c.q * o.q / (r*r); // signed for direction
+    const sign = (c.q * o.q > 0) ? 1 : -1;
+    const mag = k * Math.abs(c.q) * Math.abs(o.q) / (r*r);
+    // Direction: repulsion -> away from o, attraction -> toward o
+    const repel = (c.q * o.q > 0);
+    const dir = repel ? 1 : -1;
+    Fx += dir * mag * dx/r;
+    Fy += dir * mag * (mode==='2D' ? dy/r : 0);
+  }
+  const mag = Math.sqrt(Fx*Fx + Fy*Fy);
+  return {Fx, Fy, mag};
+}
+
+function electricField(px, py) {
+  let Ex=0, Ey=0;
+  for(const c of charges) {
+    const dx = px - c.x;
+    const dy = (mode==='2D') ? py - c.y : 0;
+    const r = Math.sqrt(dx*dx + dy*dy);
+    if(r < 0.01) continue;
+    const E = k * c.q / (r*r*r); // q/r² with direction unit vector
+    Ex += E * dx;
+    Ey += E * dy;
+  }
+  return {Ex, Ey, mag: Math.sqrt(Ex*Ex+Ey*Ey)};
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+  if(document.getElementById('chkLines').checked) drawFieldLines();
+  if(document.getElementById('chkField').checked) drawFieldArrows();
+  drawAxes();
+  if(document.getElementById('chkForces').checked) drawForces();
+  drawCharges();
+  if(fieldPoint && tool==='field') drawFieldPoint();
+  updateResults();
+}
+
+function drawGrid() {
+  ctx.strokeStyle = 'rgba(30,42,69,0.6)';
+  ctx.lineWidth = 0.5;
+  const step = zoom * 60;
+  const ox = (canvas.width/2 + panX) % step;
+  const oy = (canvas.height/2 + panY) % step;
+  for(let x = ox; x < canvas.width; x += step) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for(let y = oy; y < canvas.height; y += step) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+}
+
+function drawAxes() {
+  const o = worldToCanvas(0, 0);
+  ctx.strokeStyle = 'rgba(86,100,128,0.5)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, o.y); ctx.lineTo(canvas.width, o.y); ctx.stroke();
+  if(mode==='2D') {
+    ctx.beginPath(); ctx.moveTo(o.x, 0); ctx.lineTo(o.x, canvas.height); ctx.stroke();
+  }
+  // Tick labels
+  ctx.fillStyle = 'rgba(86,100,128,0.7)';
+  ctx.font = '9px JetBrains Mono';
+  const step = zoom*60;
+  for(let i=-20;i<=20;i++) {
+    if(i===0) continue;
+    const p = worldToCanvas(i,0);
+    if(p.x>5 && p.x<canvas.width-5) {
+      ctx.fillText(i+'m', p.x-8, o.y+12);
+    }
+    if(mode==='2D') {
+      const py = worldToCanvas(0,i);
+      if(py.y>5 && py.y<canvas.height-5) {
+        ctx.fillText(i, o.x+4, py.y+3);
+      }
+    }
+  }
+}
+
+function drawArrow(x1,y1,x2,y2,color,width,label) {
+  const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy);
+  if(len<2) return;
+  ctx.save();
+  ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=width;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  // Arrowhead
+  const ang=Math.atan2(dy,dx);
+  const hs=8*width;
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2-hs*Math.cos(ang-0.4), y2-hs*Math.sin(ang-0.4));
+  ctx.lineTo(x2-hs*Math.cos(ang+0.4), y2-hs*Math.sin(ang+0.4));
+  ctx.closePath(); ctx.fill();
+  if(label) {
+    ctx.font='bold 10px JetBrains Mono';
+    ctx.fillStyle=color;
+    ctx.fillText(label, x2+5, y2-5);
+  }
+  ctx.restore();
+}
+
+function drawForces() {
+  const scale = 2e-4 * zoom; // pixels per N
+  for(const c of charges) {
+    const f = netForceOn(c.id);
+    if(f.mag < 1e-15) continue;
+    const p = worldToCanvas(c.x, c.y);
+    const ex = p.x + f.Fx * scale;
+    const ey = p.y - f.Fy * scale;
+    const clamp = 80*zoom;
+    const dx=ex-p.x,dy=ey-p.y,len=Math.sqrt(dx*dx+dy*dy);
+    const cx2 = len>clamp ? p.x+dx/len*clamp : ex;
+    const cy2 = len>clamp ? p.y+dy/len*clamp : ey;
+    const lbl = fmtF(f.mag);
+    drawArrow(p.x,p.y,cx2,cy2,'#ffc947',2.5,lbl);
+  }
+}
+
+function drawFieldArrows() {
+  if(charges.length===0) return;
+  const gridSize = Math.max(8, Math.floor(40/zoom));
+  const xStep = canvas.width/gridSize;
+  const yStep = canvas.height/gridSize;
+  for(let i=0;i<=gridSize;i++) for(let j=0;j<=gridSize;j++) {
+    const px=i*xStep, py=j*yStep;
+    const wp=canvasToWorld(px,py);
+    const f=electricField(wp.x,wp.y);
+    if(f.mag<1e-3) continue;
+    const scale=18*zoom/Math.max(1,Math.log10(f.mag+1));
+    const nx=f.Ex/f.mag, ny=f.Ey/f.mag;
+    const ex=px+nx*scale, ey=py-ny*scale;
+    const alpha=Math.min(1,Math.log10(f.mag+1)/8);
+    ctx.save();
+    ctx.globalAlpha=alpha*0.7;
+    drawArrow(px,py,ex,ey,'#7b61ff',1);
+    ctx.restore();
+  }
+}
+
+function drawFieldLines() {
+  if(charges.length===0) return;
+  const nLines = 8;
+  for(const c of charges) {
+    if(c.q===0) continue;
+    const sign = c.q > 0 ? 1 : -1;
+    for(let i=0;i<nLines;i++) {
+      const ang = (2*Math.PI*i)/nLines;
+      let wx=c.x + 0.3*Math.cos(ang), wy=c.y+0.3*Math.sin(ang);
+      ctx.beginPath();
+      const p0=worldToCanvas(wx,wy); ctx.moveTo(p0.x,p0.y);
+      for(let step=0;step<200;step++) {
+        const f=electricField(wx,wy);
+        if(f.mag<1e-6) break;
+        const ds=0.12*sign;
+        wx+=ds*f.Ex/f.mag; wy+=ds*f.Ey/f.mag;
+        const p=worldToCanvas(wx,wy);
+        ctx.lineTo(p.x,p.y);
+        if(p.x<-50||p.x>canvas.width+50||p.y<-50||p.y>canvas.height+50) break;
+        // Check if near a negative charge
+        for(const cc of charges) {
+          if(cc.q<0) {
+            const d=Math.sqrt((wx-cc.x)**2+(wy-cc.y)**2);
+            if(d<0.2) goto_break: { step=200; break; }
+          }
+        }
+      }
+      ctx.strokeStyle='rgba(123,97,255,0.25)'; ctx.lineWidth=1; ctx.stroke();
+    }
+  }
+}
+
+function drawCharges() {
+  for(const c of charges) {
+    const p=worldToCanvas(c.x,c.y);
+    const r=16+(mode==='1D'?2:0);
+    const isPos=c.q>=0;
+    const color=isPos?'#ff4d6d':'#4db8ff';
+    const isSelected=c.id===selectedId;
+    // Glow
+    const grad=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r*2);
+    grad.addColorStop(0,isPos?'rgba(255,77,109,0.3)':'rgba(77,184,255,0.3)');
+    grad.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(p.x,p.y,r*2,0,Math.PI*2); ctx.fill();
+    // Selection ring
+    if(isSelected) {
+      ctx.strokeStyle='#ffc947'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(p.x,p.y,r+5,0,Math.PI*2); ctx.stroke();
+    }
+    // Main circle
+    ctx.fillStyle=color; ctx.beginPath(); ctx.arc(p.x,p.y,r,0,Math.PI*2); ctx.fill();
+    // Sign
+    ctx.fillStyle='#fff'; ctx.font='bold 14px Sora'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(isPos?'+':'−',p.x,p.y+1);
+    // Label
+    ctx.fillStyle=color; ctx.font='10px JetBrains Mono'; ctx.textAlign='center'; ctx.textBaseline='top';
+    const qLabel=`q${c.id}=${fmtQ(c.q)}μC`;
+    ctx.fillText(qLabel,p.x,p.y+r+4);
+    // Position label
+    ctx.fillStyle='rgba(136,153,187,0.8)'; ctx.font='9px JetBrains Mono';
+    const posLabel=mode==='2D'?`(${c.x.toFixed(1)},${c.y.toFixed(1)})m`:`x=${c.x.toFixed(1)}m`;
+    ctx.fillText(posLabel,p.x,p.y+r+16);
+  }
+  // Reset
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+}
+
+function drawFieldPoint() {
+  if(!fieldPoint) return;
+  const p=worldToCanvas(fieldPoint.x,fieldPoint.y);
+  const f=electricField(fieldPoint.x,fieldPoint.y);
+  ctx.fillStyle='#00e5a0';
+  ctx.beginPath(); ctx.arc(p.x,p.y,6,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#00e5a0'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(p.x,p.y,12,0,Math.PI*2); ctx.stroke();
+  if(f.mag>1e-3) {
+    const scale=40*zoom/Math.max(1,Math.log10(f.mag+1));
+    const nx=f.Ex/f.mag,ny=f.Ey/f.mag;
+    drawArrow(p.x,p.y,p.x+nx*scale,p.y-ny*scale,'#00e5a0',2.5,fmtE(f.mag));
+  }
+}
+
+// ============================================================
+// FORMATTING
+// ============================================================
+function fmtQ(q) { return (q*1e6).toFixed(2); } // to μC display
+function fmtF(F) {
+  if(Math.abs(F)>=1) return F.toExponential(2)+'N';
+  return F.toExponential(2)+'N';
+}
+function fmtE(E) {
+  return E.toExponential(2)+'N/C';
+}
+function fmtDist(r) { return r.toFixed(3)+'m'; }
+
+// ============================================================
+// UI UPDATES
+// ============================================================
+function updateChargeList() {
+  const el=document.getElementById('chargeList');
+  if(charges.length===0) {
+    el.innerHTML='<div class="empty-state"><div class="icon">🔵</div>Sin cargas.<br>Agrega cargas o haz click en el canvas.</div>';
+    return;
+  }
+  el.innerHTML=charges.map(c=>`
+    <div class="charge-item ${c.id===selectedId?'selected':''}" onclick="selectCharge(${c.id})">
+      <div class="charge-dot" style="background:${c.q>=0?'#ff4d6d':'#4db8ff'}"></div>
+      <div class="charge-info">
+        <div class="charge-name" style="color:${c.q>=0?'#ff4d6d':'#4db8ff'}">q${c.id} = ${fmtQ(c.q)} μC</div>
+        <div class="charge-coords">${mode==='2D'?`(${c.x.toFixed(2)}, ${c.y.toFixed(2)}) m`:`x = ${c.x.toFixed(2)} m`}</div>
+      </div>
+      <span class="charge-del" onclick="event.stopPropagation();removeCharge(${c.id})">×</span>
+    </div>
+  `).join('');
+}
+
+function showTab(tab) {
+  currentResultTab=tab;
+  document.querySelectorAll('.results-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
+  document.getElementById('tab-forces').style.display=tab==='forces'?'block':'none';
+  document.getElementById('tab-field').style.display=tab==='field'?'block':'none';
+  document.getElementById('tab-analysis').style.display=tab==='analysis'?'block':'none';
+  updateResults();
+}
+
+function updateResults() {
+  updateForces();
+  updateFieldTab();
+  updateAnalysis();
+}
+
+function updateForces() {
+  const el=document.getElementById('tab-forces');
+  if(charges.length===0){
+    el.innerHTML=`<div class="empty-state"><div class="icon">📐</div>Agrega cargas para ver fuerzas.</div>`;
+    return;
+  }
+  let html=`
+  <div class="formula-box">
+    <div class="formula-title">Ley de Coulomb</div>
+    <div class="formula-main">F = k|q₁||q₂| / r²</div>
+    <div class="formula-desc">
+      <b>k</b> = 8.988×10⁹ N·m²/C² (cte. de Coulomb)<br>
+      <b>q₁, q₂</b>: magnitud de las cargas [C]<br>
+      <b>r</b>: distancia entre cargas [m]<br>
+      <b>F</b>: fuerza eléctrica [N]<br><br>
+      Forma vectorial: <b>F⃗₁₂ = k·q₁·q₂/r² · r̂₁₂</b><br>
+      (+) repulsión &nbsp; (−) atracción
+    </div>
+  </div>`;
+
+  if(selectedId!==null) {
+    const c=charges.find(c=>c.id===selectedId);
+    if(c) {
+      const f=netForceOn(selectedId);
+      html+=`
+      <div class="result-card" style="border-color:var(--yellow)">
+        <div class="result-card-title">⚡ Fuerza Neta sobre q${c.id}</div>
+        <div class="result-value ${f.mag>0?'neutral':''}">${f.mag.toExponential(3)} N</div>
+        <div class="result-unit">Magnitud total</div>
+        ${mode==='2D'?`<div class="result-components">
+          <div class="result-comp"><div class="result-comp-label">Fx</div><div class="result-comp-val">${f.Fx.toExponential(2)} N</div></div>
+          <div class="result-comp"><div class="result-comp-label">Fy</div><div class="result-comp-val">${f.Fy.toExponential(2)} N</div></div>
+        </div>`:''}
+        ${mode==='1D'?`<div class="result-components">
+          <div class="result-comp"><div class="result-comp-label">Fx</div><div class="result-comp-val">${f.Fx.toExponential(2)} N</div></div>
+          <div class="result-comp"><div class="result-comp-label">Dirección</div><div class="result-comp-val">${f.Fx>0?'→ derecha':'← izquierda'}</div></div>
+        </div>`:''}
+      </div>`;
+    }
+  } else {
+    html+=`<div class="result-card"><div class="result-card-title">Tip</div><div style="font-size:11px;color:var(--text2)">Selecciona una carga para ver su fuerza neta detallada.</div></div>`;
+  }
+
+  if(charges.length>=2) {
+    html+=`<div style="margin-top:12px"><div class="section-title" style="font-size:10px">Fuerzas entre pares</div>
+    <table class="pair-table">
+    <thead><tr><th>Par</th><th>r (m)</th><th>|F| (N)</th><th>Tipo</th></tr></thead><tbody>`;
+    for(let i=0;i<charges.length;i++) for(let j=i+1;j<charges.length;j++) {
+      const ci=charges[i],cj=charges[j];
+      const dx=ci.x-cj.x,dy=mode==='2D'?ci.y-cj.y:0;
+      const r=Math.sqrt(dx*dx+dy*dy);
+      if(r<1e-10) continue;
+      const F=k*Math.abs(ci.q)*Math.abs(cj.q)/(r*r);
+      const rep=ci.q*cj.q>0;
+      html+=`<tr>
+        <td style="color:var(--text)">q${ci.id}↔q${cj.id}</td>
+        <td>${r.toFixed(3)}</td>
+        <td class="force-val">${F.toExponential(2)}</td>
+        <td><span class="badge ${rep?'badge-rep':'badge-atr'}">${rep?'Repulsión':'Atracción'}</span></td>
+      </tr>`;
+    }
+    html+=`</tbody></table></div>`;
+  }
+  el.innerHTML=html;
+}
+
+function updateFieldTab() {
+  const el=document.getElementById('tab-field');
+  let html=`
+  <div class="formula-box">
+    <div class="formula-title">Campo Eléctrico</div>
+    <div class="formula-main">E⃗ = F⃗/q₀ = kq/r² · r̂</div>
+    <div class="formula-desc">
+      <b>E⃗</b>: campo eléctrico [N/C = V/m]<br>
+      <b>k</b> = 8.988×10⁹ N·m²/C²<br>
+      <b>q</b>: carga fuente [C]<br>
+      <b>r</b>: distancia al punto [m]<br>
+      <b>r̂</b>: vector unitario radial<br><br>
+      Por superposición: <b>E⃗_total = Σ E⃗ᵢ</b>
+    </div>
+  </div>
+  <div class="section-title" style="margin-top:8px">Calcular campo en punto</div>
+  <div class="field-grid">
+    <div><div class="control-label">X (m)</div><input type="number" id="fpX" value="0" step="0.5"></div>
+    ${mode==='2D'?`<div><div class="control-label">Y (m)</div><input type="number" id="fpY" value="0" step="0.5"></div>`:''}
+  </div>
+  <button class="btn btn-green" onclick="calcFieldPoint()">Calcular Campo</button>
+  <div id="fieldResult"></div>`;
+  el.innerHTML=html;
+
+  if(fieldPoint) {
+    const f=electricField(fieldPoint.x,fieldPoint.y);
+    document.getElementById('fieldResult').innerHTML=`
+    <div class="field-result" style="border-color:var(--green)">
+      <div class="field-result-label">Campo en (${fieldPoint.x.toFixed(2)}, ${fieldPoint.y.toFixed(2)}) m</div>
+      <div class="field-result-val">|E| = ${f.mag.toExponential(3)} N/C</div>
+      ${mode==='2D'?`<div class="field-result-dir">Ex = ${f.Ex.toExponential(2)} N/C &nbsp; Ey = ${f.Ey.toExponential(2)} N/C</div>`:`<div class="field-result-dir">Ex = ${f.Ex.toExponential(2)} N/C</div>`}
+      <div class="field-result-dir" style="margin-top:5px;font-size:10px;color:var(--text3)">Ángulo: ${mode==='2D'?(Math.atan2(f.Ey,f.Ex)*180/Math.PI).toFixed(1)+'°':'—'}</div>
+    </div>`;
+  }
+}
+
+function calcFieldPoint() {
+  const x=parseFloat(document.getElementById('fpX')?.value)||0;
+  const y=mode==='2D'?parseFloat(document.getElementById('fpY')?.value)||0:0;
+  fieldPoint={x,y};
+  tool='field';
+  render();
+  updateFieldTab();
+}
+
+function updateAnalysis() {
+  const el=document.getElementById('tab-analysis');
+  let html=`
+  <div class="formula-box">
+    <div class="formula-title">Análisis Dimensional</div>
+    <div class="formula-main">F = k|q₁||q₂|/r²</div>
+    <div class="formula-desc">Verificación de unidades:</div>
+  </div>
+  <div class="dim-block">
+    <div class="dim-step">[k] <span class="eq">=</span> <span class="unit">N·m²·C⁻²</span></div>
+    <div class="dim-step">[q₁], [q₂] <span class="eq">=</span> <span class="unit">C (Coulombs)</span></div>
+    <div class="dim-step">[r²] <span class="eq">=</span> <span class="unit">m² (metros²)</span></div>
+    <div class="dim-step">[F] <span class="eq">=</span> [k][q][q]/[r²]</div>
+    <div class="dim-step"><span class="eq">=</span> <span class="unit">N·m²·C⁻² · C · C / m²</span></div>
+    <div class="dim-step"><span class="eq">=</span> <span class="unit">N·m²·C⁻²·C² / m²</span></div>
+    <div class="dim-step" style="border-color:var(--green)"><span class="eq">=</span> <span class="unit" style="color:var(--green)">N ✓ (Newtons)</span></div>
+  </div>
+  <div class="formula-box" style="margin-top:8px">
+    <div class="formula-title">Campo Eléctrico — Dimensional</div>
+    <div class="formula-main">E = kq/r²</div>
+    <div class="formula-desc">Unidades del campo:</div>
+  </div>
+  <div class="dim-block">
+    <div class="dim-step">[E] = [k][q]/[r²]</div>
+    <div class="dim-step"><span class="eq">=</span> <span class="unit">N·m²·C⁻² · C / m²</span></div>
+    <div class="dim-step"><span class="eq">=</span> <span class="unit">N·m²·C⁻¹ / m²</span></div>
+    <div class="dim-step" style="border-color:var(--green)"><span class="eq">=</span> <span class="unit" style="color:var(--green)">N/C = V/m ✓</span></div>
+  </div>`;
+
+  if(charges.length>=1 && selectedId!==null) {
+    const c=charges.find(c=>c.id===selectedId);
+    const others=charges.filter(o=>o.id!==selectedId);
+    if(c && others.length>0) {
+      html+=`<div class="formula-box" style="margin-top:8px;border-color:var(--yellow)">
+      <div class="formula-title" style="color:var(--yellow)">Cálculo paso a paso: q${c.id}</div>`;
+      for(const o of others) {
+        const dx=c.x-o.x,dy=mode==='2D'?c.y-o.y:0;
+        const r=Math.sqrt(dx*dx+dy*dy);
+        if(r<1e-10) continue;
+        const F=k*Math.abs(c.q)*Math.abs(o.q)/(r*r);
+        html+=`<div class="formula-desc" style="margin-top:6px">
+          <b>q${c.id}↔q${o.id}:</b><br>
+          F = ${k.toExponential(3)} × |${(c.q*1e6).toFixed(2)}×10⁻⁶| × |${(o.q*1e6).toFixed(2)}×10⁻⁶| / ${r.toFixed(3)}²<br>
+          F = <b>${F.toExponential(3)} N</b> (${c.q*o.q>0?'Repulsión':'Atracción'})
+        </div>`;
+      }
+      html+=`</div>`;
+    }
+  }
+  el.innerHTML=html;
+}
+
+// ============================================================
+// INTERACTIONS
+// ============================================================
+canvas.addEventListener('mousemove', e=>{
+  const rect=canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  const wp=canvasToWorld(mx,my);
+  document.getElementById('canvasCoords').textContent=`x: ${wp.x.toFixed(2)} m${mode==='2D'?', y: '+wp.y.toFixed(2)+' m':''}`;
+
+  if(isDragging && dragId!==null) {
+    const c=charges.find(c=>c.id===dragId);
+    if(c){c.x=Math.round(wp.x*10)/10; if(mode==='2D')c.y=Math.round(wp.y*10)/10;}
+    updateChargeList(); render();
+  }
+  if(isPanning){
+    panX+=mx-panStart.x; panY+=my-panStart.y;
+    panStart={x:mx,y:my}; render();
+  }
+
+  // Hover tooltip
+  const near=findNearCharge(mx,my,20);
+  const tooltip=document.getElementById('tooltip');
+  if(near){
+    const f=netForceOn(near.id);
+    tooltip.style.display='block';
+    tooltip.style.left=(mx+12)+'px'; tooltip.style.top=(my-30)+'px';
+    tooltip.innerHTML=`q${near.id} = ${fmtQ(near.q)}μC<br>|F_net| = ${f.mag.toExponential(2)} N`;
+  } else {
+    tooltip.style.display='none';
+  }
+});
+
+canvas.addEventListener('mousedown', e=>{
+  const rect=canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  const wp=canvasToWorld(mx,my);
+  const near=findNearCharge(mx,my,22);
+
+  if(e.button===1||(e.button===0&&e.altKey)){isPanning=true;panStart={x:mx,y:my};return;}
+
+  if(tool==='move' && near){isDragging=true;dragId=near.id;}
+  else if(tool==='select' && near){selectCharge(near.id);}
+  else if(tool==='field'){
+    fieldPoint={x:wp.x,y:wp.y};
+    document.getElementById('fpX').value=wp.x.toFixed(2);
+    if(mode==='2D'&&document.getElementById('fpY'))document.getElementById('fpY').value=wp.y.toFixed(2);
+    render(); updateFieldTab(); showTab('field');
+  }
+  else if(tool==='add'){
+    if(near){selectCharge(near.id);}
+    else {
+      const q=parseFloat(document.getElementById('inCharge').value)||1;
+      addChargeAt(wp.x, mode==='2D'?wp.y:0, q*1e-6);
+    }
+  }
+});
+
+canvas.addEventListener('mouseup', ()=>{ isDragging=false; dragId=null; isPanning=false; });
+canvas.addEventListener('mouseleave', ()=>{ isDragging=false; dragId=null; isPanning=false; document.getElementById('tooltip').style.display='none'; });
+
+canvas.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const factor=e.deltaY>0?0.9:1.1;
+  zoom=Math.min(4,Math.max(0.2,zoom*factor));
+  document.getElementById('zoomRange').value=zoom;
+  document.getElementById('zoomVal').textContent=zoom.toFixed(1);
+  render();
+},{passive:false});
+
+function findNearCharge(mx,my,threshold) {
+  for(const c of charges){
+    const p=worldToCanvas(c.x,c.y);
+    const d=Math.sqrt((mx-p.x)**2+(my-p.y)**2);
+    if(d<threshold) return c;
+  }
+  return null;
+}
+
+// ============================================================
+// CHARGE MANAGEMENT
+// ============================================================
+function addCharge() {
+  const q=parseFloat(document.getElementById('inCharge').value)||1;
+  const x=parseFloat(document.getElementById(mode==='1D'?'inX1d':'inX').value)||0;
+  const y=mode==='2D'?parseFloat(document.getElementById('inY').value)||0:0;
+  addChargeAt(x, y, q*1e-6);
+}
+
+function addChargeAt(x, y, q) {
+  charges.push({id:nextId++, x, y, q});
+  updateChargeList(); render();
+}
+
+function removeCharge(id) {
+  charges=charges.filter(c=>c.id!==id);
+  if(selectedId===id) selectedId=null;
+  updateChargeList(); render();
+}
+
+function clearAll() {
+  charges=[]; selectedId=null; fieldPoint=null; nextId=1;
+  updateChargeList(); render();
+}
+
+function selectCharge(id) {
+  selectedId=(selectedId===id)?null:id;
+  updateChargeList(); render(); updateResults();
+}
+
+// ============================================================
+// MODE & TOOLS
+// ============================================================
+function setMode(m) {
+  mode=m;
+  document.getElementById('tab1d').classList.toggle('active',m==='1D');
+  document.getElementById('tab2d').classList.toggle('active',m==='2D');
+  document.getElementById('pos2d-section').style.display=m==='2D'?'block':'none';
+  document.getElementById('pos1d-section').style.display=m==='1D'?'block':'none';
+  charges=[]; selectedId=null; fieldPoint=null; nextId=1;
+  updateChargeList(); render();
+}
+
+function setTool(t) {
+  tool=t;
+  ['toolAdd','toolMove','toolField','toolSelect'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  const map={add:'toolAdd',move:'toolMove',field:'toolField',select:'toolSelect'};
+  document.getElementById(map[t]).classList.add('active');
+  const infos={
+    add:'Click para agregar · Click en carga para seleccionar',
+    move:'Click y arrastra para mover cargas',
+    field:'Click para medir campo eléctrico en ese punto',
+    select:'Click para seleccionar y calcular fuerza neta'
+  };
+  document.getElementById('canvasInfo').textContent=infos[t];
+  if(t==='field') showTab('field');
+  if(t==='select') showTab('forces');
+  render();
+}
+
+function setZoom(v) {
+  zoom=parseFloat(v);
+  document.getElementById('zoomVal').textContent=parseFloat(v).toFixed(1);
+  render();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+showTab('forces');
+resizeCanvas();
+
+// Demo charges
+setTimeout(()=>{
+  addChargeAt(-2, 0, 2e-6);
+  addChargeAt(2, 0, -3e-6);
+  if(mode==='2D') addChargeAt(0, 2, 1.5e-6);
+  panX=0; panY=0;
+  render();
+},100);
+</script>
+</body>
+</html>
