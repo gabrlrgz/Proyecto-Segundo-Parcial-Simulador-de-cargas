@@ -26,7 +26,7 @@ Estos son los paso que debe seguir para utulizar el programa:
 
 *Nota: Se recomienda utilizar versiones actualizadas de navegadores como Google Chrome, Mozilla Firefox, Microsoft Edge para un rendimiento optimo del renderizado en el elemento Canvas.*
 
-## Librerías utilizadas
+## Librerias utilizadas
 Este proyecto esta construido íntegramente con tecnologías web nativas, priorizando la ligereza y la compatibilidad. **No utiliza librerías ni frameworks externos de JavaScript**.
 
 Las tecnologias y recursos empleados son:
