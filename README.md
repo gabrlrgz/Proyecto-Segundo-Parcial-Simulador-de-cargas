@@ -19,8 +19,8 @@ No es necesario configurar servidores locales, entornos virtuales, ni instalar d
 ## Instrucciones de ejecución
 Estos son los paso que debe seguir para utulizar el prgrama:
 
-1. Guarda el codigo fuente en tu equipo local asegurandote de que el archivo tenga la extensión `.html` (por ejemplo, `simulador.html`).
-2. Haz doble clic sobre el archivo guardado para abrirlo con tu navegador web predeterminado.( 
+1. Guarda el codigo fuente en tu equipo local asegurandote de que el archivo tenga la extensión `.html`.
+2. Haz doble clic sobre el archivo guardado para abrirlo con tu navegador web predeterminado.(si se abre su IDE de click derecho y seleecione `abrir con` y seleccione su navegador)
 3. Alternativamente, puedes arrastrar y soltar el archivo directamente sobre una pestaña vacía de tu navegador.
 
 *Nota: Se recomienda utilizar versiones actualizadas de navegadores como Google Chrome, Mozilla Firefox, Microsoft Edge o Safari para un rendimiento óptimo del renderizado en el elemento Canvas.*
