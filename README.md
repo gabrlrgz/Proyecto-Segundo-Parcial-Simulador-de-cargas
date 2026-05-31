@@ -36,3 +36,10 @@ Las tecnologias y recursos empleados son:
 - **Google Fonts (vía CDN):**
   - *Sora:* Utilizada para la tipografioa  de la interfaz.
   - *JetBrains Mono:* Tipografia monoespaciada utilizada especificamente para mostrar coordenadas, formulas matematicas y resultados numericos.
+## Interpretación física de los resultados
+La simulación traduce conceptos abstractos de electrostática en representaciones visuales y numéricas directas:
+
+- **Ley de Coulomb y Fuerza Neta:** El sistema calcula la interacción entre cada par de cargas basándose en la ley del inverso del cuadrado. La fuerza neta sobre una carga seleccionada se muestra como un vector (flecha amarilla), cuya magnitud disminuye rápidamente a medida que la distancia aumenta, ilustrando la dependencia de $1/r^2$.
+- **Interacciones (Atracción/Repulsión):** Las etiquetas de "Atracción" (cargas de distinto signo) y "Repulsión" (cargas del mismo signo) confirman el comportamiento cualitativo de las partículas, donde la dirección del vector fuerza neta se orienta hacia afuera de las cargas del mismo signo o hacia adentro de las cargas opuestas.
+- **Campo Eléctrico y Superposición:** El campo eléctrico (vectores violetas o verdes) representa la influencia de las cargas en todo el espacio circundante. La visualización por superposición demuestra que el campo en cualquier punto es la suma vectorial de las contribuciones individuales de todas las cargas presentes en el sistema.
+- **Análisis Dimensional:** La sección de análisis verifica la coherencia física de los res
