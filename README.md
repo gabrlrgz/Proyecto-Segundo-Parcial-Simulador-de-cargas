@@ -1,2 +1,38 @@
-# Proyecto-Segundo-Parcial-Simulador-de-cargas
-que permita simular un sistema de cargas eléctricas puntuales en 1D y 2D.
+# Simulador de Cargas Eléctricas
+
+## Breve descripción del proyecto
+Este proyecto es un simulador web interactivo de física electromagnética diseñado para visualizar y analizar las interacciones entre cargas eléctricas puntuales. La herramienta permite trabajar en entornos de una (1D) y dos dimensiones (2D), aplicando la Ley de Coulomb y el principio de superposición. 
+
+A través de una interfaz gráfica intuitiva, los usuarios pueden:
+- Agregar cargas positivas o negativas especificando su magnitud y posición.
+- Observar en tiempo real los vectores de fuerza neta y calcular su magnitud.
+- Visualizar el campo eléctrico y sus líneas de campo.
+- Realizar mediciones del campo eléctrico en puntos específicos del espacio.
+- Revisar el desglose analítico y dimensional de las fórmulas aplicadas.
+
+Es una excelente herramienta de apoyo visual y matemático para la resolución de ejercicios de electromagnetismo a nivel universitario.
+
+## Instrucciones de instalación
+El simulador es una aplicación *Single Page Application* (SPA) completamente estática. Toda su estructura, lógica matemática y estilos están contenidos dentro del mismo archivo fuente. Por lo tanto, **no requiere instalación previa**.
+
+No es necesario configurar servidores locales, entornos virtuales (como Node.js), ni instalar dependencias mediante gestores de paquetes.
+
+## Instrucciones de ejecución
+Al ejecutarse enteramente del lado del cliente, iniciar el simulador es muy rápido y sencillo:
+
+1. Guarda el código fuente en tu equipo local asegurándote de que el archivo tenga la extensión `.html` (por ejemplo, `simulador_cargas_electricas.html`).
+2. Haz doble clic sobre el archivo guardado para abrirlo con tu navegador web predeterminado. 
+3. Alternativamente, puedes arrastrar y soltar el archivo directamente sobre una pestaña vacía de tu navegador.
+
+*Nota: Se recomienda utilizar versiones actualizadas de navegadores como Google Chrome, Mozilla Firefox, Microsoft Edge o Safari para un rendimiento óptimo del renderizado en el elemento Canvas.*
+
+## Librerías utilizadas
+Este proyecto está construido íntegramente con tecnologías web nativas, priorizando la ligereza y la compatibilidad. **No utiliza librerías ni frameworks externos de JavaScript** (como React, Vue, o motores de física como Matter.js).
+
+Las tecnologías y recursos empleados son:
+- **HTML5:** Para la estructura de la aplicación y el elemento `<canvas>`.
+- **CSS3:** Para los estilos, utilizando variables nativas y *Grid/Flexbox* para la maquetación.
+- **Vanilla JavaScript:** Para toda la lógica de cálculo de fuerzas (Ley de Coulomb), interacciones del usuario y renderizado de gráficos en el canvas.
+- **Google Fonts (vía CDN):**
+  - *Sora:* Utilizada para la tipografía principal de la interfaz.
+  - *JetBrains Mono:* Tipografía monoespaciada utilizada específicamente para mostrar coordenadas, fórmulas matemáticas y resultados numéricos, garantizando una lectura técnica clara.
