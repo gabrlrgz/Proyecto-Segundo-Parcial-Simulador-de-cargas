@@ -36,10 +36,10 @@ Las tecnologias y recursos empleados son:
 - **Google Fonts (vía CDN):**
   - *Sora:* Utilizada para la tipografioa  de la interfaz.
   - *JetBrains Mono:* Tipografia monoespaciada utilizada especificamente para mostrar coordenadas, formulas matematicas y resultados numericos.
-## Interpretación física de los resultados
-La simulación traduce conceptos abstractos de electrostática en representaciones visuales y numéricas directas:
+## Interpretacion fisica de los resultados
+La simulacion traduce conceptos abstractos de electrostatica en representaciones visuales y numericas para su facil comprencion:
 
-- **Ley de Coulomb y Fuerza Neta:** El sistema calcula la interacción entre cada par de cargas basándose en la ley del inverso del cuadrado. La fuerza neta sobre una carga seleccionada se muestra como un vector (flecha amarilla), cuya magnitud disminuye rápidamente a medida que la distancia aumenta, ilustrando la dependencia de $1/r^2$.
-- **Interacciones (Atracción/Repulsión):** Las etiquetas de "Atracción" (cargas de distinto signo) y "Repulsión" (cargas del mismo signo) confirman el comportamiento cualitativo de las partículas, donde la dirección del vector fuerza neta se orienta hacia afuera de las cargas del mismo signo o hacia adentro de las cargas opuestas.
-- **Campo Eléctrico y Superposición:** El campo eléctrico (vectores violetas o verdes) representa la influencia de las cargas en todo el espacio circundante. La visualización por superposición demuestra que el campo en cualquier punto es la suma vectorial de las contribuciones individuales de todas las cargas presentes en el sistema.
-- **Análisis Dimensional:** La sección de análisis verifica la coherencia física de los res
+- **Ley de Coulomb y Fuerza Neta:** El programa calcula la interaccion entre cada par de cargas basandose en la ley del inverso del cuadrado. La fuerza neta sobre una carga seleccionada se muestra como un vector (flecha amarilla), cuya magnitud disminuye a medida que la distancia aumenta, demostrando la dependencia de $1/r^2$.
+- **Interacciones (Atraccion/Repulsion):** Las etiquetas de "Atraccion" (cargas de distinto signo) y "Repulsion" (cargas del mismo signo) confirman el comportamiento cualitativo de las particulas, donde la direccion del vector fuerza neta se orienta hacia afuera de las cargas del mismo signo o hacia adentro de las cargas opuestas.
+- **Campo Electrico y Superposicin:** El campo electrico (vectores verdes) representa la interracion de las cargas en todo el espacio.
+- **Analisis Dimensional:** La seccion de analisis verifica la coherencia fisica de los resultados al desglosar las unidades de medida, confirmando que las operaciones sobre cargas y distancias siempre resultan en las unidades correctas de Fuerza (Newtons) y Campo Electrico (Newtons/Coulomb).
