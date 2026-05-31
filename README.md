@@ -19,7 +19,7 @@ No es necesario configurar servidores locales, entornos virtuales, ni instalar d
 ## Instrucciones de ejecucion
 Estos son los paso que debe seguir para utulizar el programa:
 
-1. Guarda el codigo fuente en tu equipo local (su dispositivo) asegurandote de que el archivo tenga la extensión `.html`.
+1. Guarda el codigo fuente en tu equipo local (su dispositivo) asegurandote de que el archivo tenga la extension `.html`.
 2. Haz doble clic sobre el archivo guardado para abrirlo con tu navegador web predeterminado.(si se abre su IDE, de click derecho y seleccione `abrir con` y seleccione su navegador)
 3. tambien se puede arrastrar y soltar el archivo directamente sobre una pestaña vacia de tu navegador.
 
