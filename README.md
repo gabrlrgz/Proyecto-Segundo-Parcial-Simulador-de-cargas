@@ -21,17 +21,17 @@ Estos son los paso que debe seguir para utulizar el prgrama:
 
 1. Guarda el codigo fuente en tu equipo local asegurandote de que el archivo tenga la extensión `.html`.
 2. Haz doble clic sobre el archivo guardado para abrirlo con tu navegador web predeterminado.(si se abre su IDE de click derecho y seleecione `abrir con` y seleccione su navegador)
-3. Alternativamente, puedes arrastrar y soltar el archivo directamente sobre una pestaña vacía de tu navegador.
+3. tambien se puede arrastrar y soltar el archivo directamente sobre una pestaña vacia de tu navegador.
 
-*Nota: Se recomienda utilizar versiones actualizadas de navegadores como Google Chrome, Mozilla Firefox, Microsoft Edge o Safari para un rendimiento óptimo del renderizado en el elemento Canvas.*
+*Nota: Se recomienda utilizar versiones actualizadas de navegadores como Google Chrome, Mozilla Firefox, Microsoft Edge para un rendimiento optimo del renderizado en el elemento Canvas.*
 
 ## Librerías utilizadas
-Este proyecto está construido íntegramente con tecnologías web nativas, priorizando la ligereza y la compatibilidad. **No utiliza librerías ni frameworks externos de JavaScript** (como React, Vue, o motores de física como Matter.js).
+Este proyecto esta construido íntegramente con tecnologías web nativas, priorizando la ligereza y la compatibilidad. **No utiliza librerías ni frameworks externos de JavaScript**.
 
 Las tecnologías y recursos empleados son:
 - **HTML5:** Para la estructura de la aplicación y el elemento `<canvas>`.
-- **CSS3:** Para los estilos, utilizando variables nativas y *Grid/Flexbox* para la maquetación.
-- **Vanilla JavaScript:** Para toda la lógica de cálculo de fuerzas (Ley de Coulomb), interacciones del usuario y renderizado de gráficos en el canvas.
+- **CSS3:** Para los estilos, utilizando variables nativas y *Grid/Flexbox* para la maquetacion.
+- **Vanilla JavaScript:** Para todos los calculos de fuerzas (Ley de Coulomb), interacciones con el prgrama y renderizado de gráficos en el canvas.
 - **Google Fonts (vía CDN):**
-  - *Sora:* Utilizada para la tipografía principal de la interfaz.
-  - *JetBrains Mono:* Tipografía monoespaciada utilizada específicamente para mostrar coordenadas, fórmulas matemáticas y resultados numéricos, garantizando una lectura técnica clara.
+  - *Sora:* Utilizada para la tipografioa  de la interfaz.
+  - *JetBrains Mono:* Tipografia monoespaciada utilizada especificamente para mostrar coordenadas, formulas matematicas y resultados numericos.
