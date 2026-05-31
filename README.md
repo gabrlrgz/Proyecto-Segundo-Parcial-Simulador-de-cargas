@@ -1,7 +1,7 @@
 ![logo](https://github.com/gabrlrgz/Proyecto-Segundo-Parcial-Simulador-de-cargas/blob/main/logo.png)
 # Simulador de Cargas Eléctricas
 
-## Breve descripcion del proyecto
+## descripcion del proyecto
 Este proyecto es un simulador web interactivo de física electromagnetica diseñado para visualizar y analizar las interacciones entre cargas electricas puntuales. La herramienta permite trabajar en entornos de una (1D) y dos dimensiones (2D), aplicando la Ley de Coulomb.
 A traves de una interfaz gráfica intuitiva, se dan distintas opciones:
 - Agregar cargas positivas o negativas especificando su magnitud y posicion.
