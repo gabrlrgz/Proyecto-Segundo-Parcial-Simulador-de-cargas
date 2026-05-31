@@ -1,27 +1,26 @@
 # Simulador de Cargas Eléctricas
 
 ## Breve descripción del proyecto
-Este proyecto es un simulador web interactivo de física electromagnética diseñado para visualizar y analizar las interacciones entre cargas eléctricas puntuales. La herramienta permite trabajar en entornos de una (1D) y dos dimensiones (2D), aplicando la Ley de Coulomb y el principio de superposición. 
+Este proyecto es un simulador web interactivo de física electromagnetica diseñado para visualizar y analizar las interacciones entre cargas eléctricas puntuales. La herramienta permite trabajar en entornos de una (1D) y dos dimensiones (2D), aplicando la Ley de Coulomb.
+A traves de una interfaz gráfica intuitiva, se dan distintas opciones:
+- Agregar cargas positivas o negativas especificando su magnitud y posicion.
+- Observar en tiempo real los vectores de fuerza neta y calculsr su magnitud.
+- Visualizar el campo electrico y sus lineas de campo.
+- Realizar mediciones del campo electrico en puntos especificos del espacio.
+- Revisar el desglose analitico y dimensional de las fórmulas usadas.
 
-A través de una interfaz gráfica intuitiva, los usuarios pueden:
-- Agregar cargas positivas o negativas especificando su magnitud y posición.
-- Observar en tiempo real los vectores de fuerza neta y calcular su magnitud.
-- Visualizar el campo eléctrico y sus líneas de campo.
-- Realizar mediciones del campo eléctrico en puntos específicos del espacio.
-- Revisar el desglose analítico y dimensional de las fórmulas aplicadas.
-
-Es una excelente herramienta de apoyo visual y matemático para la resolución de ejercicios de electromagnetismo a nivel universitario.
+Es una excelente herramienta de apoyo visual y matemático para la resolución y comprension de ejercicios de electromagnetismo.
 
 ## Instrucciones de instalación
-El simulador es una aplicación *Single Page Application* (SPA) completamente estática. Toda su estructura, lógica matemática y estilos están contenidos dentro del mismo archivo fuente. Por lo tanto, **no requiere instalación previa**.
+El simulador es una aplicacion *Single Page Application* (SPA) completamente estatica. Toda su estructura, lógica matemática y estilos estan contenidos dentro del mismo archivo fuente (.html). Fue elegido por su facilidad de uso ya que, **no requiere instalación previa**.
 
-No es necesario configurar servidores locales, entornos virtuales (como Node.js), ni instalar dependencias mediante gestores de paquetes.
+No es necesario configurar servidores locales, entornos virtuales, ni instalar dependencias.
 
 ## Instrucciones de ejecución
-Al ejecutarse enteramente del lado del cliente, iniciar el simulador es muy rápido y sencillo:
+Estos son los paso que debe seguir para utulizar el prgrama:
 
-1. Guarda el código fuente en tu equipo local asegurándote de que el archivo tenga la extensión `.html` (por ejemplo, `simulador_cargas_electricas.html`).
-2. Haz doble clic sobre el archivo guardado para abrirlo con tu navegador web predeterminado. 
+1. Guarda el codigo fuente en tu equipo local asegurandote de que el archivo tenga la extensión `.html` (por ejemplo, `simulador.html`).
+2. Haz doble clic sobre el archivo guardado para abrirlo con tu navegador web predeterminado.( 
 3. Alternativamente, puedes arrastrar y soltar el archivo directamente sobre una pestaña vacía de tu navegador.
 
 *Nota: Se recomienda utilizar versiones actualizadas de navegadores como Google Chrome, Mozilla Firefox, Microsoft Edge o Safari para un rendimiento óptimo del renderizado en el elemento Canvas.*
