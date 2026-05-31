@@ -11,8 +11,8 @@ A traves de una interfaz gráfica intuitiva, se dan distintas opciones:
 
 Es una excelente herramienta de apoyo visual y matemático para la resolución y comprension de ejercicios de electromagnetismo.
 
-## Instrucciones de instalación
-El simulador es una aplicacion *Single Page Application* (SPA) completamente estatica. Toda su estructura, logica matemática y estilos estan contenidos dentro del mismo archivo fuente (.html). Fue elegido por su facilidad de uso ya que, **no requiere instalaciones previas**.
+## Instrucciones de instalacion
+El simulador es una aplicacion *Single Page Application* (SPA) completamente estatica. Toda su estructura, logica matematica y estilos estan contenidos dentro del mismo archivo fuente (.html). Fue elegido por su facilidad de uso ya que, **no requiere instalaciones previas**.
 
 No es necesario configurar servidores locales, entornos virtuales, ni instalar dependencias.
 
