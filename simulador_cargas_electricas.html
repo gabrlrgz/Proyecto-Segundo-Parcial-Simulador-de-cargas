@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<!-- ============================================================
+     SIMULADOR DE CARGAS ELÉCTRICAS
+     Aplicación web interactiva que simula la Ley de Coulomb,
+     el campo eléctrico y la fuerza neta sobre cargas puntuales
+     en modo 1D (una dimensión) o 2D (dos dimensiones).
+     ============================================================ -->
+<html lang="es">
+
+<head>
+    <!-- Codificación UTF-8 para soporte de caracteres especiales (tildes, ñ, etc.) -->
+    <meta charset="UTF-8">
+    <!-- Hace que la página sea responsiva en móviles -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Cargas Eléctricas</title>
+
+    <!-- Importa dos tipografías de Google Fonts:
+         - JetBrains Mono: para valores numéricos y etiquetas técnicas
+         - Sora: para texto general de la interfaz -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Sora:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* ============================================================
+           VARIABLES CSS GLOBALES (Design Tokens)
+           Define la paleta de colores y tipografías en un solo lugar.
+           Cualquier cambio aquí afecta toda la interfaz.
+           ============================================================ */
+        :root {
+            --bg: #0a0e1a;           /* Fondo principal oscuro (casi negro azulado) */
+            --bg2: #0f1526;          /* Fondo secundario para header */
+            --panel: #131929;        /* Fondo de paneles laterales */
+            --border: #1e2a45;       /* Borde suave */
+            --border2: #2a3a5e;      /* Borde más visible */
+            --accent: #00d4ff;       /* Color de acento principal (azul cian) */
+            --accent2: #7b61ff;      /* Acento secundario (morado) */
+            --accent3: #ff6b35;      /* Acento terciario (naranja) */
+            --pos: #ff4d6d;          /* Color para cargas positivas (rojo-rosa) */
+            --neg: #4db8ff;          /* Color para cargas negativas (azul claro) */
+            --text: #e8edf5;         /* Texto principal (blanco suave) */
+            --text2: #8899bb;        /* Texto secundario (gris azulado) */
+            --text3: #566480;        /* Texto terciario (más oscuro, para labels) */
+            --green: #00e5a0;        /* Verde para resultados correctos/positivos */
+            --yellow: #ffc947;       /* Amarillo para fuerza neta y fórmulas */
+            --formula-bg: #0d1730;   /* Fondo de cajas de fórmulas */
+            --formula-border: #1a2d55; /* Borde de cajas de fórmulas */
+            --font: 'Sora', sans-serif;            /* Tipografía general */
+            --mono: 'JetBrains Mono', monospace;   /* Tipografía monoespaciada */
+        }
+
+        /* Reset básico: elimina márgenes y paddings por defecto,
+           y hace que width/height incluyan el padding (box-sizing) */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Estilo del body: fondo oscuro, texto claro,
+           altura mínima completa, sin scroll horizontal */
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ============================================================
+           HEADER — Barra superior de la aplicación
+           ============================================================ */
+        .header {
+            background: var(--bg2);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        /* Ícono/logo del simulador: cuadrado con gradiente morado→cyan */
+        .header-logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent2), var(--accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        /* Título principal del header */
+        .header h1 {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -0.3px;
+        }
+
+        /* Subtítulo del header (descripción técnica) */
+        .header p {
+            font-size: 12px;
+            color: var(--text2);
+            font-family: var(--mono);
+        }
+
+        /* Contenedor de pestañas 1D / 2D, empujado al extremo derecho (margin-left:auto) */
+        .mode-tabs {
+            margin-left: auto;
+            display: flex;
+            gap: 4px;
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 3px;
+            border: 1px solid var(--border);
+        }
+
+        /* Botón individual de pestaña de modo (1D o 2D) */
+        .mode-tab {
+            padding: 6px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text2);
+            border: none;
+            background: none;
+            font-family: var(--font);
+        }
+
+        /* Pestaña activa: fondo morado y texto blanco */
+        .mode-tab.active {
+            background: var(--accent2);
+            color: #fff;
+        }
+
+        /* ============================================================
+           LAYOUT PRINCIPAL — Grid de 3 columnas:
+           Panel izquierdo (280px) | Canvas central (flexible) | Panel derecho (320px)
+           Ocupa el resto de la altura de la ventana (sin el header de 65px)
+           ============================================================ */
+        .app {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            height: calc(100vh - 65px);
+        }
+
+        /* ============================================================
+           PANEL IZQUIERDO — Controles de entrada
+           ============================================================ */
+        .panel-left {
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Sección individual dentro del panel: tiene borde inferior separador */
+        .panel-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* La última sección ocupa el espacio restante y tiene scroll vertical */
+        .panel-section:last-child {
+            border-bottom: none;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Título de sección (en mayúsculas pequeñas, estilo "label de categoría") */
+        .section-title {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text3);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        /* Fila de control: agrupa etiqueta + input verticalmente */
+        .control-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+
+        /* Etiqueta de control con tipografía monoespaciada */
+        .control-label {
+            font-size: 11px;
+            color: var(--text2);
+            font-family: var(--mono);
+        }
+
+        /* Texto destacado dentro de una etiqueta (ej: unidades μC en cian) */
+        .control-label span {
+            color: var(--accent);
+        }
+
+        /* ============================================================
+           CONTROLES DE FORMULARIO — Inputs, rangos y selects
+           ============================================================ */
+
+        /* Slider / range personalizado: barra delgada oscura */
+        input[type=range] {
+            width: 100%;
+            height: 3px;
+            -webkit-appearance: none;
+            background: var(--border2);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* Pulgar (thumb) del slider: círculo cian */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+
+        /* Campos numéricos y de texto: fondo oscuro, borde redondeado */
+        input[type=number],
+        input[type=text] {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border2);
+            border-radius: 6px;
+            color: var(--text);
+            padding: 7px 10px;
+            font-size: 12px;
+            font-family: var(--mono);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        /* Al hacer focus, el borde cambia a morado */
+        input[type=number]:focus,
+        input[type=text]:focus {
+            border-color: var(--accent2);
+        }
+
+        /* Select (desplegable): mismo estilo que los inputs */
+        select {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border2);
+            border-radius: 6px;
+            color: var(--text);
+            padding: 7px 10px;
+            font-size: 12px;
+            font-family: var(--mono);
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* ============================================================
+           BOTONES — Variantes de estilo
+           ============================================================ */
+        .btn {
+            width: 100%;
+            padding: 9px;
+            border: none;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: var(--font);
+            margin-bottom: 6px;
+        }
+
+        /* Botón primario: fondo morado sólido (acción principal) */
+        .btn-primary {
+            background: var(--accent2);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: #9b7fff;
+            transform: translateY(-1px); /* Sube 1px al hacer hover (efecto de elevación) */
+        }
+
+        /* Botón de acento: solo borde cian (acción secundaria) */
+        .btn-accent {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+        .btn-accent:hover {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        /* Botón de peligro: borde rojo (acciones destructivas como "Limpiar todo") */
+        .btn-danger {
+            background: transparent;
+            border: 1px solid var(--pos);
+            color: var(--pos);
+        }
+        .btn-danger:hover {
+            background: rgba(255, 77, 109, 0.1);
+        }
+
+        /* Botón verde: borde verde (acciones de confirmación o cálculo) */
+        .btn-green {
+            background: transparent;
+            border: 1px solid var(--green);
+            color: var(--green);
+        }
+        .btn-green:hover {
+            background: rgba(0, 229, 160, 0.1);
+        }
+
+        /* ============================================================
+           LISTA DE CARGAS — Elementos del panel izquierdo
+           ============================================================ */
+
+        /* Tarjeta de una carga individual en la lista */
+        .charge-item {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .charge-item:hover {
+            border-color: var(--border2);
+        }
+        /* Carga seleccionada: borde morado y fondo ligeramente coloreado */
+        .charge-item.selected {
+            border-color: var(--accent2);
+            background: rgba(123, 97, 255, 0.08);
+        }
+
+        /* Punto de color (rojo=positiva, azul=negativa) en cada tarjeta */
+        .charge-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Área de texto con nombre y coordenadas de la carga */
+        .charge-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* Nombre de la carga (ej: "q1 = 2.00 μC") */
+        .charge-name {
+            font-size: 12px;
+            font-weight: 600;
+            font-family: var(--mono);
+        }
+
+        /* Coordenadas de posición de la carga */
+        .charge-coords {
+            font-size: 10px;
+            color: var(--text2);
+            font-family: var(--mono);
+        }
+
+        /* Botón "×" para eliminar una carga de la lista */
+        .charge-del {
+            font-size: 16px;
+            color: var(--text3);
+            padding: 2px 4px;
+            cursor: pointer;
+        }
+        .charge-del:hover {
+            color: var(--pos); /* Se vuelve rojo al pasar el cursor */
+        }
+
+        /* ============================================================
+           ÁREA DEL CANVAS — Zona de simulación visual
+           ============================================================ */
+        .canvas-area {
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Barra de herramientas sobre el canvas (botones de modo de interacción) */
+        .canvas-toolbar {
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            padding: 8px 16px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* Botón de herramienta individual (Agregar, Mover, Medir, Seleccionar) */
+        .tool-btn {
+            padding: 5px 12px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: var(--mono);
+            border: 1px solid var(--border2);
+            background: var(--bg);
+            color: var(--text2);
+        }
+        .tool-btn:hover {
+            background: var(--border);
+            color: var(--text);
+        }
+        /* Herramienta activa: fondo morado sólido */
+        .tool-btn.active {
+            background: var(--accent2);
+            border-color: var(--accent2);
+            color: #fff;
+        }
+
+        /* El canvas ocupa todo el espacio disponible del área */
+        canvas {
+            cursor: crosshair; /* Cursor de mira para interacción de precisión */
+            display: block;
+        }
+
+        /* Texto informativo flotante en la parte inferior izquierda del canvas */
+        .canvas-info {
+            position: absolute;
+            bottom: 12px;
+            left: 16px;
+            background: rgba(10, 14, 26, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 10px;
+            font-family: var(--mono);
+            color: var(--text2);
+            pointer-events: none; /* No interfiere con clicks en el canvas */
+        }
+
+        /* Coordenadas del cursor flotantes en la parte superior derecha del canvas */
+        .canvas-coords {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: rgba(10, 14, 26, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 10px;
+            font-family: var(--mono);
+            color: var(--text2);
+            pointer-events: none;
+        }
+
+        /* ============================================================
+           PANEL DERECHO — Resultados y análisis
+           ============================================================ */
+        .panel-right {
+            background: var(--panel);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Fila de pestañas: Fuerzas | Campo E | Análisis */
+        .results-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Pestaña individual de resultados */
+        .results-tab {
+            flex: 1;
+            padding: 10px;
+            font-size: 11px;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            color: var(--text2);
+            border: none;
+            background: none;
+            font-family: var(--font);
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent; /* Subrayado transparente por defecto */
+        }
+
+        /* Pestaña activa: texto cian y subrayado cian */
+        .results-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        /* Contenedor scrollable del contenido de resultados */
+        .results-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        /* Scrollbar personalizado: delgado y minimalista */
+        .results-content::-webkit-scrollbar { width: 4px; }
+        .results-content::-webkit-scrollbar-track { background: transparent; }
+        .results-content::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 2px;
+        }
+
+        /* ============================================================
+           CAJAS DE FÓRMULAS — Para mostrar ecuaciones físicas
+           ============================================================ */
+        .formula-box {
+            background: var(--formula-bg);
+            border: 1px solid var(--formula-border);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        /* Título de la fórmula (en mayúsculas pequeñas) */
+        .formula-title {
+            font-size: 10px;
+            color: var(--accent);
+            font-family: var(--mono);
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        /* Ecuación principal (ej: F = k|q₁||q₂|/r²) en amarillo y monoespaciado */
+        .formula-main {
+            font-size: 16px;
+            font-family: var(--mono);
+            color: var(--yellow);
+            font-weight: 500;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Descripción/explicación de la fórmula */
+        .formula-desc {
+            font-size: 11px;
+            color: var(--text2);
+            line-height: 1.7;
+        }
+        .formula-desc b {
+            color: var(--accent); /* Texto en negrita resaltado en cian */
+        }
+
+        /* ============================================================
+           TARJETAS DE RESULTADO — Para mostrar valores calculados
+           ============================================================ */
+        .result-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        /* Título de la tarjeta (label pequeño en mayúsculas) */
+        .result-card-title {
+            font-size: 10px;
+            color: var(--text3);
+            font-family: var(--mono);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        /* Valor numérico principal en grande y en negrita */
+        .result-value {
+            font-size: 18px;
+            font-weight: 700;
+            font-family: var(--mono);
+        }
+        .result-value.pos { color: var(--pos); }     /* Positivo: rojo */
+        .result-value.neg { color: var(--neg); }     /* Negativo: azul */
+        .result-value.neutral { color: var(--accent); } /* Neutro: cian */
+
+        /* Unidades debajo del valor (ej: "N/C") */
+        .result-unit {
+            font-size: 11px;
+            color: var(--text2);
+            margin-top: 2px;
+            font-family: var(--mono);
+        }
+
+        /* Grid 2 columnas para mostrar componentes Fx, Fy */
+        .result-components {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        /* Celda individual de componente vectorial */
+        .result-comp {
+            background: var(--panel);
+            border-radius: 5px;
+            padding: 7px 9px;
+            font-family: var(--mono);
+        }
+        .result-comp-label {
+            font-size: 9px;
+            color: var(--text3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .result-comp-val {
+            font-size: 13px;
+            color: var(--text);
+            font-weight: 500;
+            margin-top: 2px;
+        }
+
+        /* ============================================================
+           TABLA DE PARES — Muestra la fuerza entre cada par de cargas
+           ============================================================ */
+        .pair-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            font-family: var(--mono);
+        }
+        .pair-table th {
+            color: var(--text3);
+            font-weight: 500;
+            text-align: left;
+            padding: 5px 8px;
+            border-bottom: 1px solid var(--border);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .pair-table td {
+            padding: 7px 8px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text2);
+            vertical-align: middle;
+        }
+        .pair-table tr:last-child td { border-bottom: none; }
+        .pair-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+        /* Valor de fuerza en la tabla: amarillo y negrita */
+        .force-val {
+            color: var(--yellow);
+            font-weight: 500;
+        }
+
+        /* Etiqueta de atracción/repulsión */
+        .badge {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        /* Badge de repulsión: fondo rojizo */
+        .badge-rep {
+            background: rgba(255, 77, 109, 0.15);
+            color: var(--pos);
+            border: 1px solid rgba(255, 77, 109, 0.3);
+        }
+        /* Badge de atracción: fondo azulado */
+        .badge-atr {
+            background: rgba(77, 184, 255, 0.15);
+            color: var(--neg);
+            border: 1px solid rgba(77, 184, 255, 0.3);
+        }
+
+        /* ============================================================
+           ANÁLISIS DIMENSIONAL — Bloque de verificación de unidades
+           ============================================================ */
+        .dim-block {
+            background: var(--formula-bg);
+            border: 1px solid var(--formula-border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        /* Paso individual del análisis dimensional */
+        .dim-step {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--text2);
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 2px solid var(--accent2); /* Línea izquierda morada */
+            padding-left: 10px;
+        }
+        .dim-step .eq { color: var(--yellow); }  /* Símbolo "=" en amarillo */
+        .dim-step .unit { color: var(--green); } /* Unidades en verde */
+
+        /* ============================================================
+           CAMPO ELÉCTRICO EN PUNTO — Inputs y resultado para un punto dado
+           ============================================================ */
+        /* Grid 2 columnas para inputs de coordenadas X e Y */
+        .field-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        /* Caja de resultado del campo en el punto seleccionado */
+        .field-result {
+            font-family: var(--mono);
+            font-size: 13px;
+            background: var(--formula-bg);
+            border: 1px solid var(--formula-border);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+        .field-result-label {
+            font-size: 9px;
+            color: var(--text3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        /* Valor del campo en cian y negrita */
+        .field-result-val {
+            font-size: 15px;
+            color: var(--accent);
+            font-weight: 600;
+        }
+        /* Dirección del campo (ángulo o componentes) */
+        .field-result-dir {
+            font-size: 11px;
+            color: var(--text2);
+            margin-top: 3px;
+        }
+
+        /* ============================================================
+           LEYENDA DEL CANVAS — Íconos de referencia visual
+           ============================================================ */
+        .legend {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            color: var(--text2);
+            font-family: var(--mono);
+        }
+        /* Punto de color para la leyenda */
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* ============================================================
+           ESTADO VACÍO — Se muestra cuando no hay cargas en el sistema
+           ============================================================ */
+        .empty-state {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text3);
+            font-size: 12px;
+        }
+        .empty-state .icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        /* Scrollbar delgado para el panel izquierdo */
+        .panel-section::-webkit-scrollbar { width: 3px; }
+        .panel-section::-webkit-scrollbar-thumb { background: var(--border2); }
+
+        /* ============================================================
+           TOOLTIP — Globo de información al pasar el cursor sobre una carga
+           Muestra la carga en μC y la magnitud de la fuerza neta
+           ============================================================ */
+        .tooltip {
+            position: absolute;
+            background: var(--panel);
+            border: 1px solid var(--border2);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 11px;
+            font-family: var(--mono);
+            color: var(--text);
+            pointer-events: none; /* No bloquea el mouse */
+            z-index: 100;
+            display: none; /* Oculto por defecto, se muestra con JS */
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ============================================================
+         HEADER — Barra superior fija
+         Contiene: logo, título, subtítulo y selector de modo 1D/2D
+         ============================================================ -->
+    <div class="header">
+        <!-- Ícono de rayo ⚡ como logo de la app -->
+        <div class="header-logo">⚡</div>
+        <div>
+            <h1>Simulador de Cargas Eléctricas</h1>
+            <p>Ley de Coulomb · Campo Eléctrico · Fuerza Neta</p>
+        </div>
+        <!-- Pestañas para cambiar entre modo 1D (lineal) y 2D (plano) -->
+        <div class="mode-tabs">
+            <!-- Al hacer clic llama a setMode() para cambiar el modo de simulación -->
+            <button class="mode-tab active" id="tab1d" onclick="setMode('1D')">1D</button>
+            <button class="mode-tab" id="tab2d" onclick="setMode('2D')">2D</button>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         LAYOUT PRINCIPAL — Grid de 3 columnas
+         ============================================================ -->
+    <div class="app">
+
+        <!-- ============================================================
+             PANEL IZQUIERDO — Controles y lista de cargas
+             ============================================================ -->
+        <div class="panel-left">
+
+            <!-- Sección 1: Formulario para agregar nuevas cargas -->
+            <div class="panel-section">
+                <div class="section-title">Nueva Carga</div>
+
+                <!-- Input del valor de la carga en microcoulombs (μC) -->
+                <div class="control-row">
+                    <div class="control-label">Carga q (<span>μC</span>)</div>
+                    <input type="number" id="inCharge" value="1" step="0.5" placeholder="ej. 2.5 μC">
+                </div>
+
+                <!-- Inputs de posición para modo 2D (X e Y): ocultos en 1D -->
+                <div id="pos2d-section" style="display:none">
+                    <div class="control-row">
+                        <div class="control-label">Posición X (m)</div>
+                        <input type="number" id="inX" value="0" step="0.5">
+                    </div>
+                    <div class="control-row">
+                        <div class="control-label">Posición Y (m)</div>
+                        <input type="number" id="inY" value="0" step="0.5">
+                    </div>
+                </div>
+
+                <!-- Input de posición para modo 1D (solo X): visible en 1D -->
+                <div id="pos1d-section">
+                    <div class="control-row">
+                        <div class="control-label">Posición X (m)</div>
+                        <input type="number" id="inX1d" value="0" step="0.5">
+                    </div>
+                </div>
+
+                <!-- Botón principal: llama a addCharge() para agregar la carga al sistema -->
+                <button class="btn btn-primary" onclick="addCharge()">+ Agregar Carga</button>
+                <!-- Botón de peligro: llama a clearAll() para eliminar todas las cargas -->
+                <button class="btn btn-danger" onclick="clearAll()">Limpiar todo</button>
+            </div>
+
+            <!-- Sección 2: Opciones visuales del canvas -->
+            <div class="panel-section">
+                <div class="section-title">Opciones de vista</div>
+
+                <!-- Checkboxes para activar/desactivar capas visuales del canvas -->
+                <div class="control-row">
+                    <div class="control-label">Mostrar</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+                        <!-- Muestra/oculta las flechas de fuerza neta sobre cada carga -->
+                        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer">
+                            <input type="checkbox" id="chkForces" checked onchange="render()"> Fuerzas
+                        </label>
+                        <!-- Muestra/oculta la cuadrícula de vectores de campo eléctrico -->
+                        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer">
+                            <input type="checkbox" id="chkField" onchange="render()"> Campo E
+                        </label>
+                        <!-- Muestra/oculta las líneas de campo eléctrico (curvas de flujo) -->
+                        <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer">
+                            <input type="checkbox" id="chkLines" onchange="render()"> Líneas de campo
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Control de zoom: rango 0.3x a 4x, llama a setZoom() al cambiar -->
+                <div class="control-row">
+                    <div class="control-label">Zoom: <span id="zoomVal">1.0</span>x</div>
+                    <input type="range" min="0.3" max="4" step="0.1" value="1" id="zoomRange"
+                        oninput="setZoom(this.value)">
+                </div>
+            </div>
+
+            <!-- Sección 3: Lista dinámica de cargas en el sistema (generada por JS) -->
+            <div class="panel-section" style="flex:1;overflow-y:auto;">
+                <div class="section-title">Cargas en el sistema</div>
+                <!-- Este div es llenado por updateChargeList() en JavaScript -->
+                <div id="chargeList">
+                    <div class="empty-state">
+                        <div class="icon">🔵</div>Sin cargas.<br>Agrega cargas o haz click en el canvas.
+                    </div>
+                </div>
+                <!-- Leyenda de colores: rojo = positiva, azul = negativa -->
+                <div class="legend" style="margin-top:10px">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--pos)"></div>Positiva
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--neg)"></div>Negativa
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             ÁREA CENTRAL DEL CANVAS — Simulación visual interactiva
+             ============================================================ -->
+        <div class="canvas-area">
+
+            <!-- Barra de herramientas de interacción con el canvas -->
+            <div class="canvas-toolbar">
+                <!-- Herramienta "Agregar": click en canvas agrega una nueva carga -->
+                <button class="tool-btn active" id="toolAdd" onclick="setTool('add')">Click = agregar</button>
+                <!-- Herramienta "Mover": permite arrastrar cargas existentes -->
+                <button class="tool-btn" id="toolMove" onclick="setTool('move')">Mover carga</button>
+                <!-- Herramienta "Medir campo": click muestra el campo E en ese punto -->
+                <button class="tool-btn" id="toolField" onclick="setTool('field')">Medir campo</button>
+                <!-- Herramienta "Seleccionar": selecciona carga para ver su fuerza neta -->
+                <button class="tool-btn" id="toolSelect" onclick="setTool('select')">Seleccionar</button>
+
+                <!-- Leyenda de colores de vectores (al extremo derecho de la toolbar) -->
+                <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+                    <div class="legend-item">
+                        <div style="width:20px;height:2px;background:var(--yellow)"></div>Fuerza neta
+                    </div>
+                    <div class="legend-item">
+                        <div style="width:20px;height:2px;background:var(--accent2)"></div>Campo E
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas HTML5 donde se renderiza toda la simulación física -->
+            <canvas id="simCanvas"></canvas>
+
+            <!-- Texto informativo flotante sobre el canvas (instrucciones del modo activo) -->
+            <div class="canvas-info" id="canvasInfo">Click para agregar carga · Scroll para zoom</div>
+
+            <!-- Coordenadas del cursor en metros, actualizadas en mousemove -->
+            <div class="canvas-coords" id="canvasCoords">x: 0.00 m, y: 0.00 m</div>
+
+            <!-- Tooltip que aparece al pasar el cursor sobre una carga -->
+            <div class="tooltip" id="tooltip"></div>
+        </div>
+
+        <!-- ============================================================
+             PANEL DERECHO — Resultados numéricos y análisis
+             ============================================================ -->
+        <div class="panel-right">
+
+            <!-- Pestañas de resultados: Fuerzas | Campo E | Análisis -->
+            <div class="results-tabs">
+                <button class="results-tab active" onclick="showTab('forces')" id="tabForces">Fuerzas</button>
+                <button class="results-tab" onclick="showTab('field')" id="tabField">Campo E</button>
+                <button class="results-tab" onclick="showTab('analysis')" id="tabAnalysis">Análisis</button>
+            </div>
+
+            <!-- Contenido de las pestañas (se muestran/ocultan con showTab()) -->
+            <div class="results-content" id="resultsContent">
+                <!-- Pestaña de Fuerzas: tabla de pares y fuerza neta por carga -->
+                <div id="tab-forces"></div>
+                <!-- Pestaña de Campo E: inputs de punto y resultado del campo -->
+                <div id="tab-field" style="display:none"></div>
+                <!-- Pestaña de Análisis: fórmulas, análisis dimensional y cálculo paso a paso -->
+                <div id="tab-analysis" style="display:none"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // CONSTANTES Y ESTADO GLOBAL DE LA APLICACIÓN
+        // ============================================================
+
+        // Constante de Coulomb: k = 8.99×10⁹ N·m²/C²
+        // Es la constante de proporcionalidad en la Ley de Coulomb: F = k|q₁||q₂|/r²
+        const k = 8.9875517874e9;
+
+        let charges = [];          // Array de objetos carga: { id, x, y, q }
+        let selectedId = null;     // ID de la carga actualmente seleccionada (o null)
+        let mode = '1D';           // Modo actual: '1D' (lineal) o '2D' (plano)
+        let tool = 'add';          // Herramienta activa: 'add' | 'move' | 'field' | 'select'
+        let zoom = 1;              // Factor de zoom del canvas (0.3 a 4)
+        let panX = 0, panY = 0;   // Desplazamiento de la vista (panning en píxeles)
+        let isDragging = false;    // true si el usuario está arrastrando una carga
+        let dragId = null;         // ID de la carga que se está arrastrando
+        let lastMouse = { x: 0, y: 0 }; // Última posición del mouse (no usada activamente)
+        let fieldPoint = null;     // Punto donde se mide el campo eléctrico { x, y }
+        let currentResultTab = 'forces'; // Pestaña activa en el panel derecho
+        let nextId = 1;            // Contador autoincremental para IDs de cargas
+        let isPanning = false;     // true si el usuario está haciendo pan (botón medio o Alt+click)
+        let panStart = { x: 0, y: 0 }; // Posición del mouse al inicio del pan
+        let chargeBeingDragged = null;  // Referencia a la carga siendo arrastrada (no usada activamente)
+
+        // Referencia al elemento canvas y su contexto 2D de dibujo
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ============================================================
+        // REDIMENSIONAMIENTO DEL CANVAS
+        // Ajusta el canvas al tamaño del contenedor cuando la ventana cambia de tamaño
+        // ============================================================
+        function resizeCanvas() {
+            const area = canvas.parentElement;
+            const tb = area.querySelector('.canvas-toolbar');
+            // El canvas ocupa todo el ancho y el alto menos la toolbar
+            canvas.width = area.offsetWidth;
+            canvas.height = area.offsetHeight - tb.offsetHeight;
+            render(); // Redibujar después de redimensionar
+        }
+        // Se ejecuta resizeCanvas() cada vez que el usuario redimensiona la ventana
+        window.addEventListener('resize', resizeCanvas);
+
+        // ============================================================
+        // TRANSFORMACIONES DE COORDENADAS
+        // Convierte entre coordenadas del mundo físico (metros) y píxeles del canvas
+        // ============================================================
+
+        /**
+         * Convierte coordenadas del mundo (metros) a píxeles del canvas.
+         * El origen (0,0) del mundo corresponde al centro del canvas ajustado por pan.
+         * El eje Y está invertido: positivo hacia arriba en el mundo, hacia abajo en píxeles.
+         * @param {number} wx - Coordenada X en metros
+         * @param {number} wy - Coordenada Y en metros
+         * @returns {{ x, y }} - Posición en píxeles del canvas
+         */
+        function worldToCanvas(wx, wy) {
+            const cx = canvas.width / 2 + panX + wx * zoom * 60;
+            const cy = canvas.height / 2 + panY - wy * zoom * 60;
+            return { x: cx, y: cy };
+        }
+
+        /**
+         * Convierte coordenadas de píxeles del canvas a metros del mundo físico.
+         * Operación inversa de worldToCanvas().
+         * @param {number} cx - Coordenada X en píxeles
+         * @param {number} cy - Coordenada Y en píxeles
+         * @returns {{ x, y }} - Posición en metros
+         */
+        function canvasToWorld(cx, cy) {
+            const wx = (cx - canvas.width / 2 - panX) / (zoom * 60);
+            const wy = -(cy - canvas.height / 2 - panY) / (zoom * 60);
+            return { x: wx, y: wy };
+        }
+
+        // ============================================================
+        // FÍSICA — Cálculos de Ley de Coulomb y Campo Eléctrico
+        // ============================================================
+
+        /**
+         * Calcula la magnitud de la fuerza de Coulomb entre dos cargas.
+         * F = k * |q1| * |q2| / r²
+         * @param {number} q1 - Carga 1 en Coulombs
+         * @param {number} q2 - Carga 2 en Coulombs
+         * @param {number} r  - Distancia entre las cargas en metros
+         * @returns {number} - Magnitud de la fuerza en Newtons
+         */
+        function coulombForce(q1, q2, r) {
+            return k * Math.abs(q1) * Math.abs(q2) / (r * r);
+        }
+
+        /**
+         * Calcula la fuerza neta sobre una carga dada su ID.
+         * Suma vectorialmente las fuerzas de Coulomb de todas las demás cargas.
+         * - Repulsión (mismo signo): la fuerza apunta alejándose de la otra carga
+         * - Atracción (signos opuestos): la fuerza apunta hacia la otra carga
+         * En modo 1D, la componente Y es siempre 0.
+         * @param {number} id - ID de la carga objetivo
+         * @returns {{ Fx, Fy, mag }} - Componentes y magnitud de la fuerza neta en N
+         */
+        function netForceOn(id) {
+            const c = charges.find(c => c.id === id);
+            if (!c) return { Fx: 0, Fy: 0, mag: 0 };
+            let Fx = 0, Fy = 0;
+            for (const o of charges) {
+                if (o.id === id) continue; // No calcular la fuerza de una carga sobre sí misma
+                const dx = c.x - o.x;
+                const dy = (mode === '2D') ? c.y - o.y : 0; // dy = 0 en modo 1D
+                const r = Math.sqrt(dx * dx + dy * dy);
+                if (r < 1e-10) continue; // Evitar división por cero si están en el mismo punto
+                const F = k * c.q * o.q / (r * r); // con signo para dirección
+                const sign = (c.q * o.q > 0) ? 1 : -1;
+                const mag = k * Math.abs(c.q) * Math.abs(o.q) / (r * r);
+                // Repulsión: dir=+1 (se aleja), Atracción: dir=-1 (se acerca)
+                const repel = (c.q * o.q > 0);
+                const dir = repel ? 1 : -1;
+                // Proyección del vector unitario sobre cada eje
+                Fx += dir * mag * dx / r;
+                Fy += dir * mag * (mode === '2D' ? dy / r : 0);
+            }
+            const mag = Math.sqrt(Fx * Fx + Fy * Fy);
+            return { Fx, Fy, mag };
+        }
+
+        /**
+         * Calcula el campo eléctrico resultante en un punto (px, py) del espacio.
+         * E = Σ k*q / r² * r̂ (suma de contribuciones de todas las cargas)
+         * El campo apunta en la dirección que experimentaría una carga de prueba positiva.
+         * @param {number} px - Coordenada X del punto en metros
+         * @param {number} py - Coordenada Y del punto en metros
+         * @returns {{ Ex, Ey, mag }} - Componentes y magnitud del campo en N/C
+         */
+        function electricField(px, py) {
+            let Ex = 0, Ey = 0;
+            for (const c of charges) {
+                const dx = px - c.x;
+                const dy = (mode === '2D') ? py - c.y : 0;
+                const r = Math.sqrt(dx * dx + dy * dy);
+                if (r < 0.01) continue; // Evitar singularidad en el origen de la carga
+                // k*q/r³ sirve para calcular k*q/r² * (vector unitario): multiplica dx/r
+                const E = k * c.q / (r * r * r);
+                Ex += E * dx;
+                Ey += E * dy;
+            }
+            return { Ex, Ey, mag: Math.sqrt(Ex * Ex + Ey * Ey) };
+        }
+
+        // ============================================================
+        // RENDER — Función principal que dibuja todo el canvas
+        // Se llama en cada interacción del usuario
+        // ============================================================
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Borra el canvas completo
+            drawGrid();      // 1. Dibuja la cuadrícula de fondo
+            if (document.getElementById('chkLines').checked) drawFieldLines();  // 2. Líneas de campo (opcional)
+            if (document.getElementById('chkField').checked) drawFieldArrows(); // 3. Vectores de campo (opcional)
+            drawAxes();      // 4. Dibuja los ejes X e Y con etiquetas de escala
+            if (document.getElementById('chkForces').checked) drawForces();     // 5. Flechas de fuerza neta (opcional)
+            drawCharges();   // 6. Dibuja todas las cargas (círculos + etiquetas)
+            if (fieldPoint && tool === 'field') drawFieldPoint(); // 7. Punto de medición de campo (si aplica)
+            updateResults(); // 8. Actualiza los valores numéricos en el panel derecho
+        }
+
+        /**
+         * Dibuja la cuadrícula de fondo del canvas.
+         * La cuadrícula se adapta al zoom y al pan para que las líneas
+         * siempre correspondan a posiciones en metros.
+         */
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(30,42,69,0.6)';
+            ctx.lineWidth = 0.5;
+            const step = zoom * 60; // Separación en píxeles entre líneas (1 metro = 60px * zoom)
+            const ox = (canvas.width / 2 + panX) % step;   // Offset X para el pan
+            const oy = (canvas.height / 2 + panY) % step;  // Offset Y para el pan
+            // Líneas verticales
+            for (let x = ox; x < canvas.width; x += step) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            // Líneas horizontales
+            for (let y = oy; y < canvas.height; y += step) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+        }
+
+        /**
+         * Dibuja los ejes de referencia con etiquetas de escala en metros.
+         * - Siempre dibuja el eje X horizontal
+         * - En modo 2D también dibuja el eje Y vertical
+         * - Las etiquetas muestran la posición en metros cada 1m
+         */
+        function drawAxes() {
+            const o = worldToCanvas(0, 0); // Posición del origen en píxeles
+            ctx.strokeStyle = 'rgba(86,100,128,0.5)';
+            ctx.lineWidth = 1;
+            // Eje X: línea horizontal a través del canvas
+            ctx.beginPath(); ctx.moveTo(0, o.y); ctx.lineTo(canvas.width, o.y); ctx.stroke();
+            if (mode === '2D') {
+                // Eje Y: solo en modo 2D
+                ctx.beginPath(); ctx.moveTo(o.x, 0); ctx.lineTo(o.x, canvas.height); ctx.stroke();
+            }
+            // Etiquetas numéricas de escala (de -20 a +20 metros)
+            ctx.fillStyle = 'rgba(86,100,128,0.7)';
+            ctx.font = '9px JetBrains Mono';
+            const step = zoom * 60;
+            for (let i = -20; i <= 20; i++) {
+                if (i === 0) continue; // No mostrar etiqueta en el origen
+                const p = worldToCanvas(i, 0);
+                if (p.x > 5 && p.x < canvas.width - 5) {
+                    ctx.fillText(i + 'm', p.x - 8, o.y + 12); // Etiquetas del eje X
+                }
+                if (mode === '2D') {
+                    const py = worldToCanvas(0, i);
+                    if (py.y > 5 && py.y < canvas.height - 5) {
+                        ctx.fillText(i, o.x + 4, py.y + 3); // Etiquetas del eje Y
+                    }
+                }
+            }
+        }
+
+        /**
+         * Dibuja una flecha desde (x1,y1) hasta (x2,y2) con punta triangular.
+         * Se usa para representar vectores de fuerza y de campo eléctrico.
+         * @param {number} x1, y1 - Origen de la flecha en píxeles
+         * @param {number} x2, y2 - Destino de la flecha en píxeles
+         * @param {string} color  - Color de la flecha (CSS)
+         * @param {number} width  - Grosor de la línea en píxeles
+         * @param {string} label  - Etiqueta opcional a mostrar cerca de la punta
+         */
+        function drawArrow(x1, y1, x2, y2, color, width, label) {
+            const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx * dx + dy * dy);
+            if (len < 2) return; // No dibujar flechas muy cortas (casi invisibles)
+            ctx.save();
+            ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width;
+            // Línea del cuerpo de la flecha
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+            // Punta triangular: usa el ángulo de la flecha para orientar el triángulo
+            const ang = Math.atan2(dy, dx);
+            const hs = 8 * width; // Tamaño de la punta proporcional al grosor
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - hs * Math.cos(ang - 0.4), y2 - hs * Math.sin(ang - 0.4));
+            ctx.lineTo(x2 - hs * Math.cos(ang + 0.4), y2 - hs * Math.sin(ang + 0.4));
+            ctx.closePath(); ctx.fill();
+            // Etiqueta opcional de magnitud cerca de la punta
+            if (label) {
+                ctx.font = 'bold 10px JetBrains Mono';
+                ctx.fillStyle = color;
+                ctx.fillText(label, x2 + 5, y2 - 5);
+            }
+            ctx.restore();
+        }
+
+        /**
+         * Dibuja las flechas de fuerza neta sobre cada carga (en amarillo).
+         * La longitud de la flecha es proporcional a la magnitud de la fuerza,
+         * pero se limita a un máximo de 80*zoom píxeles para no saturar la vista.
+         */
+        function drawForces() {
+            const scale = 2e-4 * zoom; // Factor de escala: píxeles por Newton
+            for (const c of charges) {
+                const f = netForceOn(c.id);
+                if (f.mag < 1e-15) continue; // Omitir fuerzas despreciablemente pequeñas
+                const p = worldToCanvas(c.x, c.y);
+                const ex = p.x + f.Fx * scale;
+                const ey = p.y - f.Fy * scale; // Invertir Y (canvas vs mundo)
+                // Limitar la longitud máxima de la flecha
+                const clamp = 80 * zoom;
+                const dx = ex - p.x, dy = ey - p.y, len = Math.sqrt(dx * dx + dy * dy);
+                const cx2 = len > clamp ? p.x + dx / len * clamp : ex;
+                const cy2 = len > clamp ? p.y + dy / len * clamp : ey;
+                const lbl = fmtF(f.mag); // Etiqueta con la magnitud formateada
+                drawArrow(p.x, p.y, cx2, cy2, '#ffc947', 2.5, lbl); // Amarillo
+            }
+        }
+
+        /**
+         * Dibuja una cuadrícula de vectores de campo eléctrico (flechas moradas).
+         * La densidad de la cuadrícula se adapta al zoom.
+         * La longitud de cada flecha se escala logarítmicamente para manejar
+         * el gran rango de magnitudes del campo.
+         * La opacidad también varía logarítmicamente con la magnitud.
+         */
+        function drawFieldArrows() {
+            if (charges.length === 0) return;
+            // Tamaño de la cuadrícula: entre 8 y ~40 celdas según el zoom
+            const gridSize = Math.max(8, Math.floor(40 / zoom));
+            const xStep = canvas.width / gridSize;
+            const yStep = canvas.height / gridSize;
+            for (let i = 0; i <= gridSize; i++) for (let j = 0; j <= gridSize; j++) {
+                const px = i * xStep, py = j * yStep;
+                const wp = canvasToWorld(px, py);
+                const f = electricField(wp.x, wp.y);
+                if (f.mag < 1e-3) continue; // Omitir campos muy débiles
+                // Escala logarítmica para que las flechas no sean ni demasiado grandes ni invisibles
+                const scale = 18 * zoom / Math.max(1, Math.log10(f.mag + 1));
+                const nx = f.Ex / f.mag, ny = f.Ey / f.mag; // Vector unitario
+                const ex = px + nx * scale, ey = py - ny * scale; // Punta de la flecha
+                const alpha = Math.min(1, Math.log10(f.mag + 1) / 8); // Opacidad logarítmica
+                ctx.save();
+                ctx.globalAlpha = alpha * 0.7;
+                drawArrow(px, py, ex, ey, '#7b61ff', 1); // Morado semitransparente
+                ctx.restore();
+            }
+        }
+
+        /**
+         * Dibuja las líneas de campo eléctrico (curvas de flujo).
+         * Desde cada carga positiva se trazan 8 líneas equiangulares.
+         * Cada línea se integra numéricamente siguiendo el campo eléctrico
+         * paso a paso hasta salir del canvas o llegar a una carga negativa.
+         * Las líneas de cargas negativas se generan desde las positivas
+         * (el campo siempre va de + a -).
+         */
+        function drawFieldLines() {
+            if (charges.length === 0) return;
+            const nLines = 8; // Número de líneas por carga
+            for (const c of charges) {
+                if (c.q === 0) continue;
+                const sign = c.q > 0 ? 1 : -1; // +1: líneas salen, -1: líneas entran
+                for (let i = 0; i < nLines; i++) {
+                    // Ángulo inicial para distribuir líneas uniformemente en 360°
+                    const ang = (2 * Math.PI * i) / nLines;
+                    // Punto de inicio: ligeramente alejado del centro de la carga
+                    let wx = c.x + 0.3 * Math.cos(ang), wy = c.y + 0.3 * Math.sin(ang);
+                    ctx.beginPath();
+                    const p0 = worldToCanvas(wx, wy); ctx.moveTo(p0.x, p0.y);
+                    // Integración numérica: sigue el campo paso a paso
+                    for (let step = 0; step < 200; step++) {
+                        const f = electricField(wx, wy);
+                        if (f.mag < 1e-6) break; // El campo es despreciable
+                        const ds = 0.12 * sign; // Paso de integración (positivo=sigue campo, negativo=va en contra)
+                        wx += ds * f.Ex / f.mag; wy += ds * f.Ey / f.mag;
+                        const p = worldToCanvas(wx, wy);
+                        ctx.lineTo(p.x, p.y);
+                        // Parar si la línea sale del canvas
+                        if (p.x < -50 || p.x > canvas.width + 50 || p.y < -50 || p.y > canvas.height + 50) break;
+                        // Parar si la línea llega a una carga negativa (absorbe las líneas)
+                        for (const cc of charges) {
+                            if (cc.q < 0) {
+                                const d = Math.sqrt((wx - cc.x) ** 2 + (wy - cc.y) ** 2);
+                                if (d < 0.2) goto_break: { step = 200; break; }
+                            }
+                        }
+                    }
+                    // Dibujar la línea en morado semitransparente
+                    ctx.strokeStyle = 'rgba(123,97,255,0.25)'; ctx.lineWidth = 1; ctx.stroke();
+                }
+            }
+        }
+
+        /**
+         * Dibuja cada carga como un círculo coloreado con:
+         * - Halo de resplandor radial (glow)
+         * - Anillo amarillo si está seleccionada
+         * - Círculo principal (rojo=positiva, azul=negativa)
+         * - Símbolo + o − en el centro
+         * - Etiqueta con valor en μC debajo
+         * - Etiqueta con coordenadas de posición
+         */
+        function drawCharges() {
+            for (const c of charges) {
+                const p = worldToCanvas(c.x, c.y);
+                const r = 16 + (mode === '1D' ? 2 : 0); // Radio ligeramente mayor en 1D
+                const isPos = c.q >= 0;
+                const color = isPos ? '#ff4d6d' : '#4db8ff'; // Rojo o azul según signo
+                const isSelected = c.id === selectedId;
+
+                // Halo de resplandor: degradado radial desde el color hasta transparente
+                const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 2);
+                grad.addColorStop(0, isPos ? 'rgba(255,77,109,0.3)' : 'rgba(77,184,255,0.3)');
+                grad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(p.x, p.y, r * 2, 0, Math.PI * 2); ctx.fill();
+
+                // Anillo de selección en amarillo
+                if (isSelected) {
+                    ctx.strokeStyle = '#ffc947'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, r + 5, 0, Math.PI * 2); ctx.stroke();
+                }
+
+                // Círculo principal de la carga
+                ctx.fillStyle = color; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+
+                // Símbolo + o − en blanco, centrado
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 14px Sora'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(isPos ? '+' : '−', p.x, p.y + 1);
+
+                // Etiqueta con ID y valor en μC (ej: "q1=2.00μC")
+                ctx.fillStyle = color; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+                const qLabel = `q${c.id}=${fmtQ(c.q)}μC`;
+                ctx.fillText(qLabel, p.x, p.y + r + 4);
+
+                // Etiqueta con coordenadas de posición en metros
+                ctx.fillStyle = 'rgba(136,153,187,0.8)'; ctx.font = '9px JetBrains Mono';
+                const posLabel = mode === '2D' ? `(${c.x.toFixed(1)},${c.y.toFixed(1)})m` : `x=${c.x.toFixed(1)}m`;
+                ctx.fillText(posLabel, p.x, p.y + r + 16);
+            }
+            // Restablecer alineación de texto para no afectar otros dibujos
+            ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        }
+
+        /**
+         * Dibuja el punto de medición del campo eléctrico (herramienta "Medir campo").
+         * Muestra un círculo verde, un anillo exterior, y una flecha en la dirección del campo.
+         * La longitud de la flecha está escalada logarítmicamente.
+         */
+        function drawFieldPoint() {
+            if (!fieldPoint) return;
+            const p = worldToCanvas(fieldPoint.x, fieldPoint.y);
+            const f = electricField(fieldPoint.x, fieldPoint.y);
+            // Punto verde relleno
+            ctx.fillStyle = '#00e5a0';
+            ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI * 2); ctx.fill();
+            // Anillo exterior punteado
+            ctx.strokeStyle = '#00e5a0'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(p.x, p.y, 12, 0, Math.PI * 2); ctx.stroke();
+            // Flecha de campo si la magnitud es apreciable
+            if (f.mag > 1e-3) {
+                const scale = 40 * zoom / Math.max(1, Math.log10(f.mag + 1));
+                const nx = f.Ex / f.mag, ny = f.Ey / f.mag; // Vector unitario del campo
+                drawArrow(p.x, p.y, p.x + nx * scale, p.y - ny * scale, '#00e5a0', 2.5, fmtE(f.mag));
+            }
+        }
+
+        // ============================================================
+        // FUNCIONES DE FORMATO — Convierten valores numéricos a strings legibles
+        // ============================================================
+
+        /** Formatea una carga en Coulombs → muestra en μC con 2 decimales */
+        function fmtQ(q) { return (q * 1e6).toFixed(2); }
+
+        /** Formatea una fuerza en Newtons → notación científica con 2 decimales */
+        function fmtF(F) {
+            if (Math.abs(F) >= 1) return F.toExponential(2) + 'N';
+            return F.toExponential(2) + 'N';
+        }
+
+        /** Formatea un campo eléctrico en N/C → notación científica con 2 decimales */
+        function fmtE(E) {
+            return E.toExponential(2) + 'N/C';
+        }
+
+        /** Formatea una distancia en metros → 3 decimales + 'm' */
+        function fmtDist(r) { return r.toFixed(3) + 'm'; }
+
+        // ============================================================
+        // ACTUALIZACIÓN DE LA INTERFAZ DE USUARIO
+        // ============================================================
+
+        /**
+         * Actualiza la lista de cargas en el panel izquierdo.
+         * Genera HTML dinámico para cada carga con su color, ID, valor y posición.
+         * Si no hay cargas, muestra el estado vacío.
+         */
+        function updateChargeList() {
+            const el = document.getElementById('chargeList');
+            if (charges.length === 0) {
+                el.innerHTML = '<div class="empty-state"><div class="icon">🔵</div>Sin cargas.<br>Agrega cargas o haz click en el canvas.</div>';
+                return;
+            }
+            // Genera una tarjeta por cada carga con dot de color, nombre, coordenadas y botón eliminar
+            el.innerHTML = charges.map(c => `
+    <div class="charge-item ${c.id === selectedId ? 'selected' : ''}" onclick="selectCharge(${c.id})">
+      <div class="charge-dot" style="background:${c.q >= 0 ? '#ff4d6d' : '#4db8ff'}"></div>
+      <div class="charge-info">
+        <div class="charge-name" style="color:${c.q >= 0 ? '#ff4d6d' : '#4db8ff'}">q${c.id} = ${fmtQ(c.q)} μC</div>
+        <div class="charge-coords">${mode === '2D' ? `(${c.x.toFixed(2)}, ${c.y.toFixed(2)}) m` : `x = ${c.x.toFixed(2)} m`}</div>
+      </div>
+      <span class="charge-del" onclick="event.stopPropagation();removeCharge(${c.id})">×</span>
+    </div>`).join('');
+        }
+
+        /**
+         * Muestra la pestaña indicada en el panel de resultados y oculta las demás.
+         * Actualiza el estado visual de los botones de pestaña.
+         * @param {string} tab - Nombre de la pestaña: 'forces' | 'field' | 'analysis'
+         */
+        function showTab(tab) {
+            currentResultTab = tab;
+            ['forces', 'field', 'analysis'].forEach(t => {
+                document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+                document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
+            });
+            updateResults(); // Actualizar contenido de la pestaña activa
+        }
+
+        /**
+         * Actualiza el contenido de todas las pestañas del panel derecho.
+         * Llama a las funciones específicas de cada pestaña.
+         */
+        function updateResults() {
+            updateForcesTab();
+            updateFieldTab();
+            updateAnalysisTab();
+        }
+
+        /**
+         * Actualiza la pestaña "Fuerzas":
+         * - Si no hay cargas: mensaje vacío
+         * - Si hay una sola carga: aviso de que se necesitan 2 cargas
+         * - Si hay 2+ cargas:
+         *   1. Tabla de pares con F de Coulomb, distancia y tipo (atracción/repulsión)
+         *   2. Para cada carga: fuerza neta con componentes y magnitud
+         */
+        function updateForcesTab() {
+            const el = document.getElementById('tab-forces');
+            if (charges.length === 0) {
+                el.innerHTML = '<div class="empty-state"><div class="icon">⚡</div>Agrega al menos 2 cargas para ver fuerzas.</div>';
+                return;
+            }
+            if (charges.length === 1) {
+                el.innerHTML = '<div class="empty-state"><div class="icon">⚡</div>Agrega otra carga para calcular fuerzas.</div>';
+                return;
+            }
+
+            let html = '';
+
+            // Sección 1: Tabla de pares (fuerza entre cada combinación de 2 cargas)
+            html += `<div class="formula-box">
+      <div class="formula-title">Ley de Coulomb</div>
+      <div class="formula-main">F = k|q₁||q₂|/r²</div>
+      <div class="formula-desc"><b>k</b> = 8.99×10⁹ N·m²/C²</div>
+    </div>
+    <table class="pair-table">
+      <thead><tr>
+        <th>Par</th><th>r</th><th>|F|</th><th>Tipo</th>
+      </tr></thead>
+      <tbody>`;
+
+            // Generar una fila por cada par único de cargas (combinaciones sin repetición)
+            for (let i = 0; i < charges.length; i++) {
+                for (let j = i + 1; j < charges.length; j++) {
+                    const c1 = charges[i], c2 = charges[j];
+                    const dx = c1.x - c2.x, dy = mode === '2D' ? c1.y - c2.y : 0;
+                    const r = Math.sqrt(dx * dx + dy * dy);
+                    if (r < 1e-10) continue; // Omitir cargas superpuestas
+                    const F = k * Math.abs(c1.q) * Math.abs(c2.q) / (r * r);
+                    const sameSign = (c1.q * c2.q > 0);
+                    html += `<tr>
+          <td>q${c1.id}↔q${c2.id}</td>
+          <td>${fmtDist(r)}</td>
+          <td class="force-val">${F.toExponential(2)} N</td>
+          <td><span class="badge ${sameSign ? 'badge-rep' : 'badge-atr'}">${sameSign ? 'Rep.' : 'Atr.'}</span></td>
+        </tr>`;
+                }
+            }
+            html += `</tbody></table>`;
+
+            // Sección 2: Fuerza neta para cada carga individual
+            html += `<div style="margin-top:12px">`;
+            for (const c of charges) {
+                const f = netForceOn(c.id);
+                const cls = f.mag < 1e-15 ? 'neutral' : (f.Fx > 0 ? 'pos' : 'neg');
+                html += `<div class="result-card ${c.id === selectedId ? 'selected' : ''}">
+          <div class="result-card-title">Fuerza neta sobre q${c.id} (${fmtQ(c.q)} μC)</div>
+          <div class="result-value ${cls}">${f.mag.toExponential(3)} N</div>
+          <div class="result-unit">Magnitud |F_neta|</div>
+          <div class="result-components">
+            <div class="result-comp">
+              <div class="result-comp-label">Fx</div>
+              <div class="result-comp-val">${f.Fx.toExponential(2)} N</div>
+            </div>
+            <div class="result-comp">
+              <div class="result-comp-label">Fy</div>
+              <div class="result-comp-val">${f.Fy.toExponential(2)} N</div>
+            </div>
+          </div>
+        </div>`;
+            }
+            html += `</div>`;
+            el.innerHTML = html;
+        }
+
+        /**
+         * Actualiza la pestaña "Campo E":
+         * - Muestra inputs para definir un punto de medición (X e Y en 2D)
+         * - Si hay un punto seleccionado y al menos una carga, muestra:
+         *   1. El vector campo (Ex, Ey) y su magnitud
+         *   2. El ángulo en grados (en 2D)
+         *   3. Contribución individual de cada carga al campo total
+         */
+        function updateFieldTab() {
+            const el = document.getElementById('tab-field');
+            let html = `<div class="formula-box">
+      <div class="formula-title">Campo Eléctrico</div>
+      <div class="formula-main">E = kq/r²</div>
+      <div class="formula-desc">Campo generado por una carga puntual</div>
+    </div>
+    <div class="formula-desc" style="margin-bottom:8px">Coordenadas del punto P:</div>
+    <div class="field-grid">
+      <div>
+        <div class="control-label">X (m)</div>
+        <input type="number" id="fpX" value="${fieldPoint ? fieldPoint.x.toFixed(2) : '0'}" step="0.1" oninput="setFieldPoint()">
+      </div>
+      ${mode === '2D' ? `<div>
+        <div class="control-label">Y (m)</div>
+        <input type="number" id="fpY" value="${fieldPoint ? fieldPoint.y.toFixed(2) : '0'}" step="0.1" oninput="setFieldPoint()">
+      </div>` : '<div></div>'}
+    </div>`;
+
+            // Si hay un punto definido y hay cargas, calcular y mostrar el campo
+            if (fieldPoint && charges.length > 0) {
+                const f = electricField(fieldPoint.x, fieldPoint.y);
+                const angle = Math.atan2(f.Ey, f.Ex) * 180 / Math.PI;
+                html += `<div class="field-result">
+        <div class="field-result-label">|E| en punto P</div>
+        <div class="field-result-val">${fmtE(f.mag)}</div>
+        <div class="field-result-dir">Ex = ${f.Ex.toExponential(2)} N/C · Ey = ${f.Ey.toExponential(2)} N/C</div>
+        ${mode === '2D' ? `<div class="field-result-dir">Ángulo: ${angle.toFixed(1)}°</div>` : ''}
+      </div>`;
+
+                // Contribución individual de cada carga al campo en el punto P
+                html += `<div class="formula-desc" style="margin:8px 0">Contribución por carga:</div>`;
+                for (const c of charges) {
+                    const dx = fieldPoint.x - c.x, dy = mode === '2D' ? fieldPoint.y - c.y : 0;
+                    const r = Math.sqrt(dx * dx + dy * dy);
+                    if (r < 0.01) continue;
+                    const Emag = k * Math.abs(c.q) / (r * r);
+                    html += `<div class="field-result" style="margin-bottom:6px">
+          <div class="field-result-label">q${c.id} = ${fmtQ(c.q)} μC · r = ${fmtDist(r)}</div>
+          <div class="field-result-val">${fmtE(Emag)}</div>
+        </div>`;
+                }
+            } else {
+                html += `<div class="empty-state" style="padding:20px 0">Haz click en el canvas con la herramienta "Medir campo" o ingresa coordenadas.</div>`;
+            }
+            el.innerHTML = html;
+        }
+
+        /**
+         * Actualiza la pestaña "Análisis":
+         * Muestra:
+         * 1. La fórmula de Coulomb con descripción de parámetros
+         * 2. Análisis dimensional: verificación de unidades para F y E
+         * 3. Si hay una carga seleccionada y otras cargas: cálculo numérico
+         *    paso a paso de la fuerza sobre la carga seleccionada
+         */
+        function updateAnalysisTab() {
+            const el = document.getElementById('tab-analysis');
+            let html = `<div class="formula-box">
+      <div class="formula-title">Ley de Coulomb — Fórmula</div>
+      <div class="formula-main">F = k|q₁||q₂|/r²</div>
+      <div class="formula-desc">
+        <b>k</b> = 8.9875517874×10⁹ N·m²/C²<br>
+        <b>q₁, q₂</b> = cargas en Coulombs<br>
+        <b>r</b> = distancia entre cargas en metros<br>
+        <b>F</b> = magnitud de la fuerza en Newtons
+      </div>
+    </div>
+    <div class="formula-desc">Verificación de unidades:</div>
+  </div>
+  <div class="dim-block">
+    <div class="dim-step">[k] <span class="eq">=</span> <span class="unit">N·m²·C⁻²</span></div>
+    <div class="dim-step">[q₁], [q₂] <span class="eq">=</span> <span class="unit">C (Coulombs)</span></div>
+    <div class="dim-step">[r²] <span class="eq">=</span> <span class="unit">m² (metros²)</span></div>
+    <div class="dim-step">[F] <span class="eq">=</span> [k][q][q]/[r²]</div>
+    <div class="dim-step"><span class="eq">=</span> <span class="unit">N·m²·C⁻² · C · C / m²</span></div>
+    <div class="dim-step"><span class="eq">=</span> <span class="unit">N·m²·C⁻²·C² / m²</span></div>
+    <div class="dim-step" style="border-color:var(--green)"><span class="eq">=</span> <span class="unit" style="color:var(--green)">N ✓ (Newtons)</span></div>
+  </div>
+  <div class="formula-box" style="margin-top:8px">
+    <div class="formula-title">Campo Eléctrico — Dimensional</div>
+    <div class="formula-main">E = kq/r²</div>
+    <div class="formula-desc">Unidades del campo:</div>
+  </div>
+  <div class="dim-block">
+    <div class="dim-step">[E] = [k][q]/[r²]</div>
+    <div class="dim-step"><span class="eq">=</span> <span class="unit">N·m²·C⁻² · C / m²</span></div>
+    <div class="dim-step"><span class="eq">=</span> <span class="unit">N·m²·C⁻¹ / m²</span></div>
+    <div class="dim-step" style="border-color:var(--green)"><span class="eq">=</span> <span class="unit" style="color:var(--green)">N/C = V/m ✓</span></div>
+  </div>`;
+
+            // Cálculo paso a paso para la carga seleccionada vs. todas las demás
+            if (charges.length >= 1 && selectedId !== null) {
+                const c = charges.find(c => c.id === selectedId);
+                const others = charges.filter(o => o.id !== selectedId);
+                if (c && others.length > 0) {
+                    html += `<div class="formula-box" style="margin-top:8px;border-color:var(--yellow)">
+      <div class="formula-title" style="color:var(--yellow)">Cálculo paso a paso: q${c.id}</div>`;
+                    for (const o of others) {
+                        const dx = c.x - o.x, dy = mode === '2D' ? c.y - o.y : 0;
+                        const r = Math.sqrt(dx * dx + dy * dy);
+                        if (r < 1e-10) continue;
+                        const F = k * Math.abs(c.q) * Math.abs(o.q) / (r * r);
+                        // Muestra la sustitución numérica completa en la fórmula de Coulomb
+                        html += `<div class="formula-desc" style="margin-top:6px">
+          <b>q${c.id}↔q${o.id}:</b><br>
+          F = ${k.toExponential(3)} × |${(c.q * 1e6).toFixed(2)}×10⁻⁶| × |${(o.q * 1e6).toFixed(2)}×10⁻⁶| / ${r.toFixed(3)}²<br>
+          F = <b>${F.toExponential(3)} N</b> (${c.q * o.q > 0 ? 'Repulsión' : 'Atracción'})
+        </div>`;
+                    }
+                    html += `</div>`;
+                }
+            }
+            el.innerHTML = html;
+        }
+
+        // ============================================================
+        // INTERACCIONES DEL CANVAS — Eventos de mouse
+        // ============================================================
+
+        /**
+         * mousemove: Se ejecuta continuamente mientras el mouse se mueve sobre el canvas.
+         * 1. Actualiza las coordenadas del cursor (en metros) en la esquina superior derecha
+         * 2. Si está arrastrando una carga (isDragging), actualiza su posición
+         * 3. Si está haciendo pan (isPanning), actualiza panX/panY
+         * 4. Muestra/oculta el tooltip al pasar cerca de una carga
+         */
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            const wp = canvasToWorld(mx, my);
+            // Actualizar display de coordenadas
+            document.getElementById('canvasCoords').textContent = `x: ${wp.x.toFixed(2)} m${mode === '2D' ? ', y: ' + wp.y.toFixed(2) + ' m' : ''}`;
+
+            // Mover carga arrastrada
+            if (isDragging && dragId !== null) {
+                const c = charges.find(c => c.id === dragId);
+                if (c) {
+                    c.x = Math.round(wp.x * 10) / 10; // Snap a 0.1m para facilitar posicionamiento
+                    if (mode === '2D') c.y = Math.round(wp.y * 10) / 10;
+                }
+                updateChargeList(); render();
+            }
+
+            // Pan de la vista (botón medio o Alt+click izquierdo)
+            if (isPanning) {
+                panX += mx - panStart.x; panY += my - panStart.y;
+                panStart = { x: mx, y: my }; render();
+            }
+
+            // Tooltip: si el cursor está a menos de 20px de una carga, mostrar info
+            const near = findNearCharge(mx, my, 20);
+            const tooltip = document.getElementById('tooltip');
+            if (near) {
+                const f = netForceOn(near.id);
+                tooltip.style.display = 'block';
+                tooltip.style.left = (mx + 12) + 'px'; tooltip.style.top = (my - 30) + 'px';
+                tooltip.innerHTML = `q${near.id} = ${fmtQ(near.q)}μC<br>|F_net| = ${f.mag.toExponential(2)} N`;
+            } else {
+                tooltip.style.display = 'none';
+            }
+        });
+
+        /**
+         * mousedown: Determina qué acción realizar según la herramienta activa y el botón presionado.
+         * - Botón medio (o Alt+clic izquierdo): inicia pan
+         * - Herramienta 'move': inicia arrastre si hay una carga cercana
+         * - Herramienta 'select': selecciona la carga más cercana
+         * - Herramienta 'field': coloca el punto de medición en las coordenadas del clic
+         * - Herramienta 'add': si hay carga cercana la selecciona, si no agrega una nueva
+         */
+        canvas.addEventListener('mousedown', e => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            const wp = canvasToWorld(mx, my);
+            const near = findNearCharge(mx, my, 22);
+
+            // Botón medio (1) o Alt+clic izquierdo → iniciar pan
+            if (e.button === 1 || (e.button === 0 && e.altKey)) { isPanning = true; panStart = { x: mx, y: my }; return; }
+
+            if (tool === 'move' && near) { isDragging = true; dragId = near.id; }
+            else if (tool === 'select' && near) { selectCharge(near.id); }
+            else if (tool === 'field') {
+                // Colocar el punto de medición y cambiar automáticamente a pestaña Campo E
+                fieldPoint = { x: wp.x, y: wp.y };
+                document.getElementById('fpX').value = wp.x.toFixed(2);
+                if (mode === '2D' && document.getElementById('fpY')) document.getElementById('fpY').value = wp.y.toFixed(2);
+                render(); updateFieldTab(); showTab('field');
+            }
+            else if (tool === 'add') {
+                if (near) { selectCharge(near.id); } // Si hay carga cercana, seleccionarla
+                else {
+                    // Agregar nueva carga en la posición del clic
+                    const q = parseFloat(document.getElementById('inCharge').value) || 1;
+                    addChargeAt(wp.x, mode === '2D' ? wp.y : 0, q * 1e-6);
+                }
+            }
+        });
+
+        // mouseup: Termina el arrastre o el pan
+        canvas.addEventListener('mouseup', () => { isDragging = false; dragId = null; isPanning = false; });
+
+        // mouseleave: Termina el arrastre/pan si el cursor sale del canvas y oculta el tooltip
+        canvas.addEventListener('mouseleave', () => { isDragging = false; dragId = null; isPanning = false; document.getElementById('tooltip').style.display = 'none'; });
+
+        /**
+         * wheel (scroll): Controla el zoom del canvas.
+         * - Scroll hacia abajo: zoom out (×0.9)
+         * - Scroll hacia arriba: zoom in (×1.1)
+         * Limita el zoom entre 0.2x y 4x.
+         * passive:false permite cancelar el scroll de la página.
+         */
+        canvas.addEventListener('wheel', e => {
+            e.preventDefault();
+            const factor = e.deltaY > 0 ? 0.9 : 1.1;
+            zoom = Math.min(4, Math.max(0.2, zoom * factor));
+            document.getElementById('zoomRange').value = zoom;
+            document.getElementById('zoomVal').textContent = zoom.toFixed(1);
+            render();
+        }, { passive: false });
+
+        /**
+         * Encuentra la carga más cercana a un punto (mx, my) en píxeles.
+         * Retorna la carga si está a menos de `threshold` píxeles, o null si no.
+         * @param {number} mx, my - Posición del mouse en píxeles
+         * @param {number} threshold - Distancia máxima de "cercanía" en píxeles
+         * @returns {object|null} - Objeto carga o null
+         */
+        function findNearCharge(mx, my, threshold) {
+            for (const c of charges) {
+                const p = worldToCanvas(c.x, c.y);
+                const d = Math.sqrt((mx - p.x) ** 2 + (my - p.y) ** 2);
+                if (d < threshold) return c;
+            }
+            return null;
+        }
+
+        // ============================================================
+        // GESTIÓN DE CARGAS — Agregar, eliminar y seleccionar
+        // ============================================================
+
+        /**
+         * Agrega una carga leyendo los valores de los inputs del formulario.
+         * Convierte μC a Coulombs (multiplica por 1e-6).
+         */
+        function addCharge() {
+            const q = parseFloat(document.getElementById('inCharge').value) || 1;
+            const x = parseFloat(document.getElementById(mode === '1D' ? 'inX1d' : 'inX').value) || 0;
+            const y = mode === '2D' ? parseFloat(document.getElementById('inY').value) || 0 : 0;
+            addChargeAt(x, y, q * 1e-6);
+        }
+
+        /**
+         * Crea una nueva carga con posición y valor dados y la agrega al array global.
+         * Incrementa el contador de IDs y actualiza la interfaz.
+         * @param {number} x - Posición X en metros
+         * @param {number} y - Posición Y en metros
+         * @param {number} q - Carga en Coulombs
+         */
+        function addChargeAt(x, y, q) {
+            charges.push({ id: nextId++, x, y, q });
+            updateChargeList(); render();
+        }
+
+        /**
+         * Elimina la carga con el ID dado del sistema.
+         * Si era la seleccionada, limpia la selección.
+         * @param {number} id - ID de la carga a eliminar
+         */
+        function removeCharge(id) {
+            charges = charges.filter(c => c.id !== id);
+            if (selectedId === id) selectedId = null;
+            updateChargeList(); render();
+        }
+
+        /**
+         * Elimina todas las cargas y reinicia el estado de la simulación.
+         * Reinicia el contador de IDs a 1.
+         */
+        function clearAll() {
+            charges = []; selectedId = null; fieldPoint = null; nextId = 1;
+            updateChargeList(); render();
+        }
+
+        /**
+         * Selecciona o deselecciona una carga (toggle).
+         * Al seleccionarla se muestra en el panel con borde amarillo en el canvas.
+         * @param {number} id - ID de la carga a seleccionar/deseleccionar
+         */
+        function selectCharge(id) {
+            selectedId = (selectedId === id) ? null : id; // Toggle
+            updateChargeList(); render(); updateResults();
+        }
+
+        // ============================================================
+        // MODO Y HERRAMIENTAS — Cambios de estado global
+        // ============================================================
+
+        /**
+         * Cambia el modo de simulación entre 1D y 2D.
+         * - Actualiza las pestañas del header
+         * - Muestra/oculta inputs de posición Y
+         * - Limpia todas las cargas al cambiar de modo
+         * @param {string} m - '1D' o '2D'
+         */
+        function setMode(m) {
+            mode = m;
+            document.getElementById('tab1d').classList.toggle('active', m === '1D');
+            document.getElementById('tab2d').classList.toggle('active', m === '2D');
+            document.getElementById('pos2d-section').style.display = m === '2D' ? 'block' : 'none';
+            document.getElementById('pos1d-section').style.display = m === '1D' ? 'block' : 'none';
+            // Limpiar el sistema al cambiar de modo (1D y 2D son incompatibles)
+            charges = []; selectedId = null; fieldPoint = null; nextId = 1;
+            updateChargeList(); render();
+        }
+
+        /**
+         * Cambia la herramienta activa de interacción con el canvas.
+         * - Quita la clase 'active' de todos los botones de herramienta
+         * - Agrega 'active' al botón correspondiente
+         * - Actualiza el texto de instrucción del canvas
+         * - Si se selecciona 'field', muestra la pestaña Campo E
+         * - Si se selecciona 'select', muestra la pestaña Fuerzas
+         * @param {string} t - 'add' | 'move' | 'field' | 'select'
+         */
+        function setTool(t) {
+            tool = t;
+            ['toolAdd', 'toolMove', 'toolField', 'toolSelect'].forEach(id => document.getElementById(id).classList.remove('active'));
+            const map = { add: 'toolAdd', move: 'toolMove', field: 'toolField', select: 'toolSelect' };
+            document.getElementById(map[t]).classList.add('active');
+            // Mensajes de ayuda según la herramienta activa
+            const infos = {
+                add: 'Click para agregar · Click en carga para seleccionar',
+                move: 'Click y arrastra para mover cargas',
+                field: 'Click para medir campo eléctrico en ese punto',
+                select: 'Click para seleccionar y calcular fuerza neta'
+            };
+            document.getElementById('canvasInfo').textContent = infos[t];
+            if (t === 'field') showTab('field');
+            if (t === 'select') showTab('forces');
+            render();
+        }
+
+        /**
+         * Actualiza el zoom a partir del slider y redibuja el canvas.
+         * @param {number|string} v - Nuevo valor de zoom
+         */
+        function setZoom(v) {
+            zoom = parseFloat(v);
+            document.getElementById('zoomVal').textContent = parseFloat(v).toFixed(1);
+            render();
+        }
+
+        /**
+         * Actualiza el punto de medición del campo eléctrico
+         * a partir de los inputs de coordenadas en la pestaña Campo E.
+         */
+        function setFieldPoint() {
+            const x = parseFloat(document.getElementById('fpX').value) || 0;
+            const y = mode === '2D' ? parseFloat(document.getElementById('fpY') ? document.getElementById('fpY').value : 0) || 0 : 0;
+            fieldPoint = { x, y };
+            render();
+        }
+
+        // ============================================================
+        // INICIALIZACIÓN
+        // ============================================================
+
+        // Mostrar la pestaña de Fuerzas por defecto al cargar la página
+        showTab('forces');
+
+        // Ajustar el canvas al tamaño inicial del contenedor
+        resizeCanvas();
+
+        // Cargar cargas de demostración después de un pequeño delay
+        // (para asegurarse de que el canvas esté renderizado correctamente)
+        setTimeout(() => {
+            addChargeAt(-2, 0, 2e-6);    // Carga positiva de 2μC en x=-2m
+            addChargeAt(2, 0, -3e-6);   // Carga negativa de -3μC en x=+2m
+            if (mode === '2D') addChargeAt(0, 2, 1.5e-6); // Carga positiva de 1.5μC en (0,2) solo si arranca en 2D
+            panX = 0; panY = 0;
+            render();
+        }, 100);
+    </script>
+</body>
+
+</html>
